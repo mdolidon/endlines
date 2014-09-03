@@ -29,6 +29,13 @@ typedef enum {
 } convention_t;
 
 
+// Reports from the conversion function to the caller
+typedef struct {
+    int lines;
+    int length;
+    bool contains_control_chars;
+} report_t;
+
 // Command line options
 typedef struct {
     convention_t convention;
