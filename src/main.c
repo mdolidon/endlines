@@ -63,7 +63,7 @@ display_help_and_quit() {
     }
     fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n");
     fprintf(stderr, " Options :\n");
-    fprintf(stderr, "   -q / --quiet : silence all but the error messages.\n\n");
+    fprintf(stderr, "   -q / --quiet : silence all but the error messages.\n");
     fprintf(stderr, "   --version : print version number.\n\n");
     fprintf(stderr, " Example :\n");
     fprintf(stderr, "   endlines unix -q `find . -name \"*.html\"`\n\n");
