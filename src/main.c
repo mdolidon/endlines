@@ -162,7 +162,7 @@ main(int argc, char**argv) {
 
     if(options.files) {
         if(!options.quiet) {
-            fprintf(stderr, "Going to convert %i file%s to %s\n", options.files, argc>3?"s":"", convention_display_names[options.convention]);
+            fprintf(stderr, "Going to convert %i file%s to %s\n", options.files, options.files>1?"s":"", convention_display_names[options.convention]);
         }
         for(int i=2; i<argc; i++) {
             if(argv[i][0] != '-') {
