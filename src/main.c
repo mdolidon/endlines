@@ -8,11 +8,10 @@
 
 #include "endlines.h"
 #include <string.h>
-#include <time.h>
 #include <sys/stat.h>
 
 
-const char * version = "0.1";
+const char * version = "0.1.1";
 
 // SPECIAL NOTE :
 //   Missing posix function on OSX 10.7 : utimensat 
@@ -117,6 +116,11 @@ parse_options(int argc, char**argv, options_t * options) {
 
 void
 convert_file(char *file_name, options_t * options) {
+    struct stat statinfo;
+    stat(file_name, &statinfo);
+    if(S_ISDIR(statinfo.st_mode)) {
+        return;
+    }
     FILE * in = fopen(file_name, "rb");
     if(in == NULL) {
         fprintf(stderr, "endlines : could not read %s\n", file_name);
@@ -137,6 +141,7 @@ convert_file(char *file_name, options_t * options) {
     int remove_status = remove(file_name);
     if(remove_status) {
         fprintf(stderr, "endlines : can't write over %s\n", file_name);
+        remove(TMP_FILE_NAME);
         return;
     }
     rename(TMP_FILE_NAME, file_name);
@@ -157,7 +162,7 @@ main(int argc, char**argv) {
 
     if(options.files) {
         if(!options.quiet) {
-            fprintf(stderr, "Converting %i file%s to %s\n", options.files, argc>3?"s":"", convention_display_names[options.convention]);
+            fprintf(stderr, "Going to convert %i file%s to %s\n", options.files, argc>3?"s":"", convention_display_names[options.convention]);
         }
         for(int i=2; i<argc; i++) {
             if(argv[i][0] != '-') {

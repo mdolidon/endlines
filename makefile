@@ -16,3 +16,6 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	rm src/*.o src/*~
+
+install: $(EXECUTABLE)
+	mv endlines /usr/local/bin/endlines

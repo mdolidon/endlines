@@ -25,4 +25,4 @@ Install
 
 Apple OSX users may get the binary from the `apple_osx_binary` directory.
 
-Linux and other POSIX users just download the repository and type `make`. 
+Linux and other POSIX users just download the repository and type `sudo make install`. 
