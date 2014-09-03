@@ -4,18 +4,20 @@ LDFLAGS=
 BODIES=src/engine.c src/main.c
 HEADERS=src/endlines.h
 OBJECTS=$(BODIES:.c=.o)
-EXECUTABLE=endlines
 
-all: $(BODIES) $(HEADERS) $(EXECUTABLE)
+all: $(BODIES) $(HEADERS) endlines
 
-$(EXECUTABLE): $(OBJECTS)
+endlines: $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 .o:
 	$(CC) -c $(CFLAGS) -o $@
 
 clean:
-	rm src/*.o src/*~
+	rm src/*.o endlines
 
-install: $(EXECUTABLE)
+install: endlines
 	mv endlines /usr/local/bin/endlines
+
+test: endlines
+	(cd test; ./runtest.sh)

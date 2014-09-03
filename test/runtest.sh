@@ -6,7 +6,7 @@ echo "hash command : $MD5"
 echo
 
 rm *test 2>/dev/null
-
+FAILURES=""
 
 # Part 1 : try various input/output combinations
 
@@ -35,6 +35,7 @@ then
     echo "OK : oldmac output"
 else
     echo "FAILURE : oldmac output doesn't match"
+    FAILURES="yes"
 fi
 
 if [[ "$WINREF" == "$WINTEST" ]]
@@ -42,6 +43,7 @@ then
     echo "OK : windows output"
 else
     echo "FAILURE : windows output doesn't match"
+    FAILURES="yes"
 fi
 
 if [[ "$UNIXREF" == "$UNIXTEST" ]]
@@ -49,6 +51,7 @@ then
     echo "OK : unix output"
 else
     echo "FAILURE : unix output doesn't match"
+    FAILURES="yes"
 fi
 
 # Part 2 : large files, testing the buffers' integrity
@@ -71,6 +74,7 @@ then
     echo "OK : large file processing"
 else
     echo "FAILURE : large file processing ; buffered access mechanism may be damaged"
+    FAILURES="yes"
 fi
 
 
@@ -84,6 +88,7 @@ then
       echo "OK : reacts to an unknown convention"
 else
     echo "FAILURE : failed to react to an unknown convention"
+    FAILURES="yes"
 fi
 
 echo "" | ../endlines unix -q 2>quiettest >/dev/null
@@ -93,6 +98,7 @@ then
     echo "OK : quietens down with -q"
 else
     echo "FAILURE : keeps chatting even though -q was used"
+    FAILURES="yes"
 fi
 
 mkdir dummydir
@@ -109,7 +115,17 @@ then
     echo "OK : multiple files"
 else
     echo "FAILURE : failure to handle multiple files"
+    FAILURES="yes"
 fi
 rmdir dummydir
 
 rm *test
+
+echo
+if [[ -z $FAILURES ]]
+then
+    echo "All tests succeeded"
+else
+    echo "** FAILURES OCCURED **"
+fi
+
