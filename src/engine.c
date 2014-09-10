@@ -20,6 +20,7 @@ static FILE* in_stream;
 static BYTE* in_buffer;
 static int inbuf_size;
 static int inbuf_ptr;
+static bool cant_pull;
 
 static FILE* out_stream;
 static BYTE* out_buffer;
@@ -46,6 +47,7 @@ reset_buffers() {
     outbuf_size = BUFFERSIZE;
     inbuf_ptr = BUFFERSIZE;
     outbuf_ptr = 0;
+    cant_pull = false;
 }
   
 
@@ -86,12 +88,14 @@ push_newline(convention_t convention) {
 
 // MANAGING THE INPUT BUFFER
 
+
 static inline BYTE
 pull_byte() {
     if(inbuf_ptr < inbuf_size) {
         return in_buffer[inbuf_ptr++];
     }
     if(inbuf_size==0 || feof(in_stream)) {
+        cant_pull = true;
         return 0;
     }
     inbuf_size = fread(in_buffer, 1, BUFFERSIZE, in_stream);
@@ -100,11 +104,17 @@ pull_byte() {
 }
 
 
+// LOOKING OUT FOR SOMETHING WEIRD
+
+static inline bool
+is_control_char(BYTE byte) {
+    return (byte <= 8 || (byte >= 14 && byte <= 31));
+}
 
 // WHAT WE CAME HERE FOR
 
 void
-convert(FILE* instream, FILE* outstream, convention_t convention) {
+convert(FILE* instream, FILE* outstream, convention_t convention, report_t * report) {
     if(!buffers_allocated) {
         if(!allocate_buffers()) {
             fprintf(stderr, "endlines : memory error ; can't allocate.\n");
@@ -115,15 +125,28 @@ convert(FILE* instream, FILE* outstream, convention_t convention) {
     out_stream = outstream;
     reset_buffers();
 
+    report->lines = 0;
+    report->contains_control_chars = false;
+
     BYTE byte;
     bool last_was_13 = false;
-    while((byte = pull_byte())) {
+
+    for(;;) {
+        byte = pull_byte();
+        if(cant_pull) {
+            break;
+        }
+        if(is_control_char(byte)) {
+            report->contains_control_chars = true;
+        }
         if(byte == 13) {
+            report->lines ++;
             push_newline(convention);
             last_was_13 = true;
         }
         else if(byte == 10) {
             if(!last_was_13) {
+                report->lines ++;
                 push_newline(convention);
             }
             last_was_13 = false;

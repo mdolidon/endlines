@@ -32,7 +32,6 @@ typedef enum {
 // Reports from the conversion function to the caller
 typedef struct {
     int lines;
-    int length;
     bool contains_control_chars;
 } report_t;
 
@@ -41,6 +40,8 @@ typedef struct {
     convention_t convention;
     int files;
     bool quiet;
+    bool verbose;
+    bool binaries;
 } options_t;
 
 
@@ -51,6 +52,6 @@ typedef struct {
 // This function means business.
 // It is exported by engine.c
 void
-convert(FILE* instream, FILE* outstream, convention_t convention);
+convert(FILE* instream, FILE* outstream, convention_t convention, report_t * report);
 
 #endif

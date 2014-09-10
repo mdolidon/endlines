@@ -3,7 +3,7 @@
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   endlines : Mathias Dolidon / 2014 */
+endlines : Mathias Dolidon / 2014 */
 
 
 #include "endlines.h"
@@ -62,8 +62,10 @@ display_help_and_quit() {
     }
     fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n");
     fprintf(stderr, " Options :\n");
-    fprintf(stderr, "   -q / --quiet : silence all but the error messages.\n");
-    fprintf(stderr, "   --version : print version number.\n\n");
+    fprintf(stderr, "   -q / --quiet    : silence all but the error messages.\n");
+    fprintf(stderr, "   -v / --verbose  : print more about what's going on.\n");
+    fprintf(stderr, "   -b / --binaries : don't skip binary files.\n");
+    fprintf(stderr, "   --version       : print version number.\n\n");
     fprintf(stderr, " Example :\n");
     fprintf(stderr, "   endlines unix -q `find . -name \"*.html\"`\n\n");
     exit(1);
@@ -87,6 +89,7 @@ parse_options(int argc, char**argv, options_t * options) {
     int i;
     options->files = 0;
     options->quiet = false;
+    options->binaries = false;
     for(i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
             options->files++;
@@ -101,6 +104,12 @@ parse_options(int argc, char**argv, options_t * options) {
         }
         else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
             options->quiet = true;
+        }
+        else if(!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
+            options->verbose = true;
+        }
+        else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
+            options->binaries = true;
         }
         else if(i==1) {
             options->convention = read_convention_from_string(argv[1]);
@@ -125,6 +134,9 @@ convert_one_file(char *file_name, options_t * options) {
     struct stat statinfo;
     stat(file_name, &statinfo);
     if(S_ISDIR(statinfo.st_mode)) {
+        if(options->verbose) {
+            fprintf(stderr, "  skipped directory %s\n", file_name);
+        }
         return SKIPPED_DIRECTORY;
     }
     FILE * in = fopen(file_name, "rb");
@@ -132,7 +144,7 @@ convert_one_file(char *file_name, options_t * options) {
         fprintf(stderr, "endlines : could not read %s\n", file_name);
         return SKIPPED_ERROR;
     }
-    
+
     FILE * out = fopen(TMP_FILE_NAME, "wb");
     if(out == NULL) {
         fprintf(stderr, "endlines : could not create temporary file %s\n", TMP_FILE_NAME);
@@ -142,12 +154,14 @@ convert_one_file(char *file_name, options_t * options) {
 
     report_t report;
     convert(in, out, options->convention, &report);
-    
+
     fclose(in);
     fclose(out);
 
-    if(report.contains_control_chars ||
-      (report.length / report.lines) > 400) {
+    if(report.contains_control_chars && !options->binaries) {
+        if(options->verbose) {
+            fprintf(stderr, "  skipped probable binary %s\n", file_name);
+        }
         remove(TMP_FILE_NAME);
         return SKIPPED_BINARY;
     }
@@ -159,6 +173,9 @@ convert_one_file(char *file_name, options_t * options) {
         return SKIPPED_ERROR;
     }
     rename(TMP_FILE_NAME, file_name);
+    if(options->verbose) {
+        fprintf(stderr, "  converted %s\n", file_name);
+    }
     return DONE;
 }
 
@@ -190,7 +207,7 @@ convert_files(int argc, char ** argv, options_t* options)  {
     if(!options->quiet) {
         fprintf(stderr,     "endlines : %i file%s converted\n", done, done>1?"s":"");
         if(directories) {
-            fprintf(stderr, "           %i directorie%s skipped\n", directories, directories>1?"s":"");
+            fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
         }
         if(binaries) {
             fprintf(stderr, "           %i binar%s skipped\n", binaries, binaries>1?"ies":"y");
@@ -214,6 +231,7 @@ main(int argc, char**argv) {
     parse_options(argc, argv, &options);
 
     if(options.files) {
+        convert_files(argc, argv, &options);
     }
     else {
         if(!options.quiet) {
