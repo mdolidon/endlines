@@ -101,6 +101,30 @@ else
     FAILURES="yes"
 fi
 
+
+cp abin abintest
+../endlines unix -v abintest 2>bintest >/dev/null
+BINARY=`cat bintest`
+if [[ $BINARY == *skipped* ]]
+then
+    echo "OK : skips binaries"
+else
+    echo "FAILURE : didn't mention skipping a binary file"
+    FAILURES="yes"
+fi
+
+cp abin bbintest
+../endlines unix -v -b bbintest 2>binforcetest >/dev/null
+BINARYFORCE=`cat binforcetest`
+if [[ $BINARYFORCE != *skipped* ]]
+then
+    echo "OK : option -b forces conversion of binaries"
+else
+    echo "FAILURE : skipped a binary in spite of -b"
+    FAILURES="yes"
+fi
+
+# Part 4 : multiple files...
 mkdir dummydir
 cp unixref multi1test
 cp unixref multi2test

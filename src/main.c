@@ -11,7 +11,7 @@ endlines : Mathias Dolidon / 2014 */
 #include <sys/stat.h>
 
 
-const char * version = "0.1.1";
+const char * version = "0.2";
 
 // SPECIAL NOTE :
 //   Missing posix function on OSX 10.7 : utimensat 
@@ -223,7 +223,8 @@ int
 main(int argc, char**argv) {
     options_t options;
     if(argc<2) {
-        fprintf(stderr, "Try endlines --help\n");
+        fprintf(stderr, "endlines CONVENTION [OPTIONS] [FILES]\n");
+        fprintf(stderr, "Try endlines --help for more information\n");
         exit(1);
     }
     setup_display_names();
