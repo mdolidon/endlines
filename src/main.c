@@ -102,6 +102,9 @@ parse_options(int argc, char**argv, options_t * options) {
             fprintf(stderr, "endlines version %s\n", version);
             exit(0);
         }
+        else if(i==1) {
+            options->convention = read_convention_from_string(argv[1]);
+        }
         else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
             options->quiet = true;
         }
@@ -110,9 +113,6 @@ parse_options(int argc, char**argv, options_t * options) {
         }
         else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
             options->binaries = true;
-        }
-        else if(i==1) {
-            options->convention = read_convention_from_string(argv[1]);
         }
         else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
