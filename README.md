@@ -1,6 +1,8 @@
 endlines
 ========
 
+Current version : **0.2**
+
 Easy conversion between new-line conventions.
 
     endlines unix importedfiles/*
