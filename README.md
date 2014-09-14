@@ -1,7 +1,7 @@
 endlines
 ========
 
-Current version : **0.2**
+Current version : **0.2.1**
 
 Easy conversion between new-line conventions.
 
