@@ -108,7 +108,7 @@ pull_byte() {
 
 static inline bool
 is_control_char(BYTE byte) {
-    return (byte <= 8 || ( byte <= 31 && byte >= 14));
+    return (byte <= 8 || (byte <= 31 && byte >= 14));
 }
 
 // WHAT WE CAME HERE FOR

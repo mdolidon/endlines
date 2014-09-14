@@ -12,13 +12,6 @@ endlines : Mathias Dolidon / 2014 */
 
 
 const char * version = "0.2.1";
-
-// SPECIAL NOTE :
-//   Missing posix function on OSX 10.7 : utimensat 
-//   Timestamp overriding capabilities not implemented yet, may
-//   implement a work-around later on.
-
-// ENUMS AND CONSTANTS ARE DEFINED IN endlines.h
 const char *convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
 
 void
@@ -31,8 +24,7 @@ setup_display_names() {
 typedef struct {
     char name[10];
     convention_t convention;
-}
-command_line_to_convention_t;
+} command_line_to_convention_t;
 
 #define CL_NAMES_COUNT 11
 const command_line_to_convention_t cl_names[CL_NAMES_COUNT] = {
@@ -140,6 +132,7 @@ convert_one_file(char *file_name, options_t * options) {
     if(S_ISDIR(statinfo.st_mode)) {
         return SKIPPED_DIRECTORY;
     }
+
     FILE * in = fopen(file_name, "rb");
     if(in == NULL) {
         fprintf(stderr, "endlines : could not read %s\n", file_name);
@@ -163,7 +156,6 @@ convert_one_file(char *file_name, options_t * options) {
         remove(TMP_FILE_NAME);
         return SKIPPED_BINARY;
     }
-
     int remove_outcome = remove(file_name);
     if(remove_outcome) {
         fprintf(stderr, "endlines : can't write over %s\n", file_name);
@@ -207,7 +199,6 @@ print_totals(int done, int directories, int binaries, int errors) {
 void
 convert_files(int argc, char ** argv, options_t* options)  {
     int totals[4] = {0,0,0,0};
-
     converted_file_outcome outcome;
     if(!options->quiet) {
         fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
