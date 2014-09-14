@@ -11,7 +11,7 @@ endlines : Mathias Dolidon / 2014 */
 #include <sys/stat.h>
 
 
-const char * version = "0.2";
+const char * version = "0.2.1";
 
 // SPECIAL NOTE :
 //   Missing posix function on OSX 10.7 : utimensat 
@@ -126,17 +126,18 @@ typedef enum {
     DONE,
     SKIPPED_BINARY,
     SKIPPED_DIRECTORY,
-    SKIPPED_ERROR
-} converted_file_status;
+    SKIPPED_ERROR,
+} converted_file_outcome;
 
-converted_file_status
+
+converted_file_outcome
 convert_one_file(char *file_name, options_t * options) {
     struct stat statinfo;
-    stat(file_name, &statinfo);
+    if(stat(file_name, &statinfo)) {
+        fprintf(stderr, "endlines : could not access %s\n", file_name);
+        return SKIPPED_ERROR;
+    };
     if(S_ISDIR(statinfo.st_mode)) {
-        if(options->verbose) {
-            fprintf(stderr, "  skipped directory %s\n", file_name);
-        }
         return SKIPPED_DIRECTORY;
     }
     FILE * in = fopen(file_name, "rb");
@@ -159,52 +160,37 @@ convert_one_file(char *file_name, options_t * options) {
     fclose(out);
 
     if(report.contains_control_chars && !options->binaries) {
-        if(options->verbose) {
-            fprintf(stderr, "  skipped probable binary %s\n", file_name);
-        }
         remove(TMP_FILE_NAME);
         return SKIPPED_BINARY;
     }
 
-    int remove_status = remove(file_name);
-    if(remove_status) {
+    int remove_outcome = remove(file_name);
+    if(remove_outcome) {
         fprintf(stderr, "endlines : can't write over %s\n", file_name);
         remove(TMP_FILE_NAME);
         return SKIPPED_ERROR;
     }
     rename(TMP_FILE_NAME, file_name);
-    if(options->verbose) {
-        fprintf(stderr, "  converted %s\n", file_name);
-    }
     return DONE;
 }
 
 
 void
-convert_files(int argc, char ** argv, options_t* options)  {
-    int done = 0;
-    int directories = 0;
-    int binaries = 0;
-    int errors = 0;
-    converted_file_status status;
-    if(!options->quiet) {
-        fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
+print_verbose_file_outcome(char * file_name, converted_file_outcome outcome) {
+    switch(outcome) {
+        case DONE: fprintf(stderr, "endlines : converted %s\n", file_name);
+            break;
+        case SKIPPED_DIRECTORY: fprintf(stderr, "endlines : skipped directory %s\n", file_name);
+            break;
+        case SKIPPED_BINARY: fprintf(stderr, "endlines : skipped probable binary %s\n", file_name);
+            break;
+        default: break;
     }
-    for(int i=2; i<argc; i++) {
-        if(argv[i][0] != '-') {
-            status = convert_one_file(argv[i], options);
-            switch(status) {
-                case DONE: done++;
-                           break;
-                case SKIPPED_DIRECTORY: directories++;
-                                        break;
-                case SKIPPED_BINARY: binaries++;
-                                     break;
-                case SKIPPED_ERROR: errors++;
-            }
-        }
-    }
-    if(!options->quiet) {
+}
+
+
+void
+print_totals(int done, int directories, int binaries, int errors) {
         fprintf(stderr,     "endlines : %i file%s converted\n", done, done>1?"s":"");
         if(directories) {
             fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
@@ -215,6 +201,28 @@ convert_files(int argc, char ** argv, options_t* options)  {
         if(errors) {
             fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
         }
+}
+
+
+void
+convert_files(int argc, char ** argv, options_t* options)  {
+    int totals[4] = {0,0,0,0};
+
+    converted_file_outcome outcome;
+    if(!options->quiet) {
+        fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
+    }
+    for(int i=2; i<argc; i++) {
+        if(argv[i][0] != '-') {
+            outcome = convert_one_file(argv[i], options);
+            totals[outcome]++;
+            if(options->verbose) {
+                print_verbose_file_outcome(argv[i], outcome);
+            }
+        }
+    }
+    if(!options->quiet) {
+        print_totals(totals[DONE], totals[SKIPPED_DIRECTORY], totals[SKIPPED_BINARY], totals[SKIPPED_ERROR]);
     }
 }
 
@@ -227,10 +235,9 @@ main(int argc, char**argv) {
         fprintf(stderr, "Try endlines --help for more information\n");
         exit(1);
     }
+
     setup_display_names();
-
     parse_options(argc, argv, &options);
-
     if(options.files) {
         convert_files(argc, argv, &options);
     }
