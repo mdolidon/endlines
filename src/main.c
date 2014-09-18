@@ -9,9 +9,10 @@ endlines : Mathias Dolidon / 2014 */
 #include "endlines.h"
 #include <string.h>
 #include <sys/stat.h>
+#include <utime.h>
 
 
-const char * version = "0.2.1";
+const char * version = "0.3";
 const char *convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
 
 void
@@ -57,9 +58,10 @@ display_help_and_quit() {
     fprintf(stderr, "   -q / --quiet    : silence all but the error messages.\n");
     fprintf(stderr, "   -v / --verbose  : print more about what's going on.\n");
     fprintf(stderr, "   -b / --binaries : don't skip binary files.\n");
+    fprintf(stderr, "   -k / --keepdate : keep files' last modified and last access time stamps.\n");
     fprintf(stderr, "   --version       : print version number.\n\n");
     fprintf(stderr, " Example :\n");
-    fprintf(stderr, "   endlines unix -q `find . -name \"*.html\"`\n\n");
+    fprintf(stderr, "   endlines unix -k `find . -name \"*.html\"`\n\n");
     exit(1);
 }
 
@@ -82,6 +84,7 @@ parse_options(int argc, char**argv, options_t * options) {
     options->files = 0;
     options->quiet = false;
     options->binaries = false;
+    options->keepdate = false;
     for(i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
             options->files++;
@@ -105,6 +108,9 @@ parse_options(int argc, char**argv, options_t * options) {
         }
         else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
             options->binaries = true;
+        }
+        else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
+            options->keepdate = true;
         }
         else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
@@ -132,6 +138,10 @@ convert_one_file(char *file_name, options_t * options) {
     if(S_ISDIR(statinfo.st_mode)) {
         return SKIPPED_DIRECTORY;
     }
+
+    struct utimbuf original_file_times;
+    original_file_times.actime = statinfo.st_atime;
+    original_file_times.modtime = statinfo.st_mtime;
 
     FILE * in = fopen(file_name, "rb");
     if(in == NULL) {
@@ -163,6 +173,9 @@ convert_one_file(char *file_name, options_t * options) {
         return SKIPPED_ERROR;
     }
     rename(TMP_FILE_NAME, file_name);
+    if(options->keepdate) {
+        utime(file_name, &original_file_times);
+    }
     return DONE;
 }
 

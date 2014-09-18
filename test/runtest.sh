@@ -124,6 +124,21 @@ else
     FAILURES="yes"
 fi
 
+cp unixref timetest
+touch -t 200001010000 timetest
+ORIGINALTIME=`ls -l timetest`
+../endlines unix -k timetest 2>/dev/null >/dev/null
+KEEPTIME=`ls -l timetest`
+../endlines unix timetest 2>/dev/null >/dev/null
+CHNGTIME=`ls -l timetest`
+if [[ ($ORIGINALTIME == $KEEPTIME) && ($ORIGINALTIME != $CHNGTIME) ]]
+then
+    echo "OK : option -k preserves the file's modification time"
+else
+    echo "FAILURE : a file time was changed when it shouldn't, or kept when it shouldn't"
+    FAILURES="yes"
+fi
+
 # Part 4 : multiple files...
 mkdir dummydir
 cp unixref multi1test

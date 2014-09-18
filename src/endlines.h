@@ -42,6 +42,7 @@ typedef struct {
     bool quiet;
     bool verbose;
     bool binaries;
+    bool keepdate;
 } options_t;
 
 
