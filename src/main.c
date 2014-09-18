@@ -31,13 +31,10 @@ typedef struct {
 const command_line_to_convention_t cl_names[CL_NAMES_COUNT] = {
     {.name="lf",      .convention=LF},
     {.name="unix",    .convention=LF},
-    {.name="linux",   .convention=LF},
     {.name="crlf",    .convention=CRLF},
     {.name="win",     .convention=CRLF},
     {.name="windows", .convention=CRLF},
     {.name="dos",     .convention=CRLF},
-    {.name="msdos",   .convention=CRLF},
-    {.name="osx",     .convention=CRLF},
     {.name="cr",      .convention=CR},
     {.name="oldmac",  .convention=CR}
 };
