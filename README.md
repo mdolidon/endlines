@@ -1,7 +1,7 @@
 endlines
 ========
 
-Current version : **0.3**
+Current version : **0.3.1**
 
 Easy conversion between new-line conventions.
 
@@ -12,7 +12,7 @@ Three conventions are recognized : Unix, Windows, and legacy Mac. File time stam
 `endlines`'s advantages over `dos2unix` : 
 - it attempts to detect binary files and skips them by default ; this can be overriden with `-b`
 - it doesn't need to know about the source files' convention. Multiple conventions can even be intermixed within a single file (this may happen after patches/merges).
-- it offers easy syntax for multiple files.
+- it offers a straightforward syntax for multiple files.
 - it works easily on OSX (yet works the same on Linux as well) 
 
 
@@ -20,7 +20,7 @@ Three conventions are recognized : Unix, Windows, and legacy Mac. File time stam
 Install
 -------
 
-Apple OSX users may get the binary from the `apple_osx_binary` directory.
+Apple OSX users may get the binary from the `apple_osx_binary` directory and save it to their `/usr/local/bin`.
 
 Linux and other POSIX users just download the repository and type `sudo make install`. 
 

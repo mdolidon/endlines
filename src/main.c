@@ -12,7 +12,7 @@ endlines : Mathias Dolidon / 2014 */
 #include <utime.h>
 
 
-const char * version = "0.3";
+const char * version = "0.3.1";
 const char *convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
 
 void
@@ -82,6 +82,7 @@ parse_options(int argc, char**argv, options_t * options) {
     options->quiet = false;
     options->binaries = false;
     options->keepdate = false;
+    options->verbose = false;
     for(i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
             options->files++;

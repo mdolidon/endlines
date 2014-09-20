@@ -1,6 +1,16 @@
 #!/bin/bash
 
-MD5=md5 
+if [ -n "`command -v md5`" ]
+then
+    MD5=md5
+elif [ -n "`command -v md5sum`" ]
+then
+    MD5=md5sum
+else
+    echo "No MD5 hash command found, can't run tests."
+    exit
+fi
+
 echo
 echo "hash command : $MD5"
 echo
@@ -167,4 +177,3 @@ then
 else
     echo "** FAILURES OCCURED **"
 fi
-
