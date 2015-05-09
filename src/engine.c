@@ -34,7 +34,14 @@ static bool
 allocate_buffers() {
     in_buffer  = malloc(BUFFERSIZE* sizeof(BYTE));
     out_buffer = malloc(BUFFERSIZE* sizeof(BYTE));
-    if(in_buffer==NULL || out_buffer==NULL) {
+    if(!(in_buffer && out_buffer)) {
+        if(in_buffer) {
+            free(in_buffer);
+        }
+        if(out_buffer) {
+            free(out_buffer);
+        }
+        buffers_allocated = false;
         return false;
     }
     buffers_allocated = true;
