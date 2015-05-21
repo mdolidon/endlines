@@ -12,11 +12,16 @@ endlines : Mathias Dolidon / 2014 */
 #include <utime.h>
 
 
-const char * version = "0.3.1";
-const char *convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
+
+
+//
+// ALL ABOUT CONVENTION NAMES
+//
+
+const char* convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
 
 void
-setup_display_names() {
+setup_conventions_display_names() {
     convention_display_names[CR] = "Legacy Mac (CR)";
     convention_display_names[LF] = "Unix (LF)";
     convention_display_names[CRLF] = "Windows (CR-LF)";
@@ -39,6 +44,21 @@ const command_line_to_convention_t cl_names[CL_NAMES_COUNT] = {
     {.name="oldmac",  .convention=CR}
 };
 
+convention_t
+read_convention_from_string(char * name) {
+    for(int i=0; i<CL_NAMES_COUNT; i++) {
+        if(!strcmp(cl_names[i].name, name)) {
+            return cl_names[i].convention;
+        }
+    }
+    fprintf(stderr, "endlines : unknown line end convention : %s\n", name);
+    exit(8);
+}
+
+
+//
+// THE HELP SCREEN
+//
 
 void
 display_help_and_quit() {
@@ -63,17 +83,10 @@ display_help_and_quit() {
 }
 
 
-convention_t
-read_convention_from_string(char * name) {
-    for(int i=0; i<CL_NAMES_COUNT; i++) {
-        if(!strcmp(cl_names[i].name, name)) {
-            return cl_names[i].convention;
-        }
-    }
-    fprintf(stderr, "endlines : unknown line end convention : %s\n", name);
-    exit(8);
-}
-
+//
+// PARSING COMMAND LINE OPTIONS
+// Yes it's a huge and ugly switch
+//
 
 void
 parse_options(int argc, char**argv, options_t * options) {
@@ -87,30 +100,22 @@ parse_options(int argc, char**argv, options_t * options) {
         if(i>1 && argv[i][0] != '-') {
             options->files++;
             continue;
-        }
-        else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+        } else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
             display_help_and_quit();
-        }
-        else if(!strcmp(argv[i], "--version")) {
-            fprintf(stderr, "endlines version %s\n", version);
+        } else if(!strcmp(argv[i], "--version")) {
+            fprintf(stderr, "endlines version %s\n", VERSION);
             exit(0);
-        }
-        else if(i==1) {
+        } else if(i==1) {
             options->convention = read_convention_from_string(argv[1]);
-        }
-        else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
+        } else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
             options->quiet = true;
-        }
-        else if(!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
+        } else if(!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
             options->verbose = true;
-        }
-        else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
+        } else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
             options->binaries = true;
-        }
-        else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
+        } else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
             options->keepdate = true;
-        }
-        else {
+        } else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
             exit(4);
         }
@@ -118,41 +123,77 @@ parse_options(int argc, char**argv, options_t * options) {
 }
 
 
+//
+// CONVERTING FILES, ONE AT A TIME
+//
+
+
+#define PROCESSING_STATUSES_COUNT 5
 typedef enum {
+    CAN_CONTINUE,
     DONE,
     SKIPPED_BINARY,
     SKIPPED_DIRECTORY,
     SKIPPED_ERROR,
-} converted_file_outcome;
+} processing_status;
 
 
-converted_file_outcome
-convert_one_file(char *file_name, options_t * options) {
-    struct stat statinfo;
-    if(stat(file_name, &statinfo)) {
+processing_status
+get_file_stats(char *file_name, struct stat* statinfo) {
+    if(stat(file_name, statinfo)) {
         fprintf(stderr, "endlines : could not access %s\n", file_name);
         return SKIPPED_ERROR;
-    };
-    if(S_ISDIR(statinfo.st_mode)) {
+    } else if(S_ISDIR(statinfo->st_mode)) {
         return SKIPPED_DIRECTORY;
+    } else {
+        return CAN_CONTINUE;
     }
+} 
+
+
+processing_status
+open_streams(FILE** in, char* in_file_name, FILE** out) {
+    *in = fopen(in_file_name, "rb");
+    if(*in == NULL) {
+        fprintf(stderr, "endlines : could not read %s\n", in_file_name);
+        return SKIPPED_ERROR;
+    }
+    *out = fopen(TMP_FILE_NAME, "wb");
+    if(*out == NULL) {
+        fprintf(stderr, "endlines : could not create temporary file %s\n", TMP_FILE_NAME);
+        fclose(*in);
+        return SKIPPED_ERROR;
+    }
+    return CAN_CONTINUE;
+}
+
+processing_status
+move_temp_file_to_destination(char* file_name) {
+    int remove_outcome = remove(file_name);
+    if(remove_outcome) {
+        fprintf(stderr, "endlines : can't write over %s\n", file_name);
+        remove(TMP_FILE_NAME);
+        return SKIPPED_ERROR;
+    }
+    rename(TMP_FILE_NAME, file_name);
+    return CAN_CONTINUE;
+}
+
+processing_status
+convert_one_file(char *file_name, options_t * options) {
+    struct stat statinfo;
+    processing_status err;
+    FILE *in=NULL;
+    FILE *out=NULL;
+
+    err = get_file_stats(file_name, &statinfo);
+    if(err) { return err; }
 
     struct utimbuf original_file_times;
     original_file_times.actime = statinfo.st_atime;
     original_file_times.modtime = statinfo.st_mtime;
 
-    FILE * in = fopen(file_name, "rb");
-    if(in == NULL) {
-        fprintf(stderr, "endlines : could not read %s\n", file_name);
-        return SKIPPED_ERROR;
-    }
-
-    FILE * out = fopen(TMP_FILE_NAME, "wb");
-    if(out == NULL) {
-        fprintf(stderr, "endlines : could not create temporary file %s\n", TMP_FILE_NAME);
-        fclose(in);
-        return SKIPPED_ERROR;
-    }
+    open_streams(&in, file_name, &out);
 
     report_t report;
     convert(in, out, options->convention, &report);
@@ -164,13 +205,10 @@ convert_one_file(char *file_name, options_t * options) {
         remove(TMP_FILE_NAME);
         return SKIPPED_BINARY;
     }
-    int remove_outcome = remove(file_name);
-    if(remove_outcome) {
-        fprintf(stderr, "endlines : can't write over %s\n", file_name);
-        remove(TMP_FILE_NAME);
-        return SKIPPED_ERROR;
-    }
-    rename(TMP_FILE_NAME, file_name);
+
+    err = move_temp_file_to_destination(file_name);
+    if(err) { return err; }
+
     if(options->keepdate) {
         utime(file_name, &original_file_times);
     }
@@ -178,8 +216,12 @@ convert_one_file(char *file_name, options_t * options) {
 }
 
 
+//
+// CONVERTING FILES, IN BATCHES
+//
+
 void
-print_verbose_file_outcome(char * file_name, converted_file_outcome outcome) {
+print_verbose_file_outcome(char * file_name, processing_status outcome) {
     switch(outcome) {
         case DONE: fprintf(stderr, "endlines : converted %s\n", file_name);
             break;
@@ -190,7 +232,6 @@ print_verbose_file_outcome(char * file_name, converted_file_outcome outcome) {
         default: break;
     }
 }
-
 
 void
 print_totals(int done, int directories, int binaries, int errors) {
@@ -209,8 +250,8 @@ print_totals(int done, int directories, int binaries, int errors) {
 
 void
 convert_files(int argc, char ** argv, options_t* options)  {
-    int totals[4] = {0,0,0,0};
-    converted_file_outcome outcome;
+    int totals[PROCESSING_STATUSES_COUNT] = {0,0,0,0,0};
+    processing_status outcome;
     if(!options->quiet) {
         fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
     }
@@ -220,7 +261,7 @@ convert_files(int argc, char ** argv, options_t* options)  {
             totals[outcome]++;
             if(options->verbose) {
                 print_verbose_file_outcome(argv[i], outcome);
-            }
+            } 
         }
     }
     if(!options->quiet) {
@@ -229,17 +270,21 @@ convert_files(int argc, char ** argv, options_t* options)  {
 }
 
 
+
+//
+// ENTRY POINT
+//
+
 int
 main(int argc, char**argv) {
-    options_t options;
     if(argc<2) {
-        fprintf(stderr, "endlines CONVENTION [OPTIONS] [FILES]\n");
-        fprintf(stderr, "Try endlines --help for more information\n");
-        exit(1);
+        display_help_and_quit();
     }
 
-    setup_display_names();
+    setup_conventions_display_names();
+    options_t options;
     parse_options(argc, argv, &options);
+
     if(options.files) {
         convert_files(argc, argv, &options);
     }

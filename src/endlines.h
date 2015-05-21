@@ -8,14 +8,17 @@
 #ifndef _ENDLINES_H
 #define _ENDLINES_H_
 
-#ifndef BYTE
-#define BYTE unsigned char
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
+#ifndef BYTE
+#define BYTE unsigned char
+#endif
+
+
+#define VERSION "0.3.2"
 
 // All the conventions we know about.
 // Define the enum values here.
@@ -53,6 +56,6 @@ typedef struct {
 // This function means business.
 // It is exported by engine.c
 void
-convert(FILE* instream, FILE* outstream, convention_t convention, report_t * report);
+convert(FILE* p_instream, FILE* p_outstream, convention_t convention, report_t* report);
 
 #endif
