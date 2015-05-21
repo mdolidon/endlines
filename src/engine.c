@@ -3,26 +3,30 @@
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   endlines : Mathias Dolidon / 2014 */
-
+   endlines : Mathias Dolidon / 2014-2015 */
 
 #include "endlines.h"
 
-#define BUFFERSIZE 100000
+
+// BUFFERED STREAM STRUCTURE DEFINITION AND INSTANCIATION
+
+// Note : I don't subtype Buffered_stream into an input
+// version and an output version to enforce their limitations.
+//
+// Just be reasonable : don't try to pull from an output stream,
+// and don't try to push into an input stream.
 
 struct Buffered_stream {
     FILE* stream;
     BYTE buffer[BUFFERSIZE];
     int buf_size;
     int buf_ptr;
-    bool blocked;
 };
 
 static inline void
 setup_base_buffered_stream(struct Buffered_stream* b, FILE* stream) {
     b->stream = stream;
     b->buf_size = BUFFERSIZE;
-    b->blocked = false;
 }
 
 static inline void
@@ -38,10 +42,11 @@ setup_output_buffered_stream(struct Buffered_stream* b, FILE* stream) {
 }
   
 
-// MANAGING AN OUPUT BUFFER
+
+// MANAGING AN OUTPUT BUFFER
 
 static inline void
-flush_out_buffer(struct Buffered_stream* b) {
+flush_buffer(struct Buffered_stream* b) {
     fwrite(b->buffer, 1, b->buf_ptr, b->stream);
     b->buf_ptr = 0;
 }
@@ -51,12 +56,12 @@ push_byte(BYTE value, struct Buffered_stream* b) {
     b->buffer[b->buf_ptr] = value;
     ++ b->buf_ptr;
     if(b->buf_ptr == b->buf_size) {
-        flush_out_buffer(b);
+        flush_buffer(b);
     }
 }
 
 static inline void
-push_newline(convention_t convention, struct Buffered_stream* b) {
+push_newline(Convention convention, struct Buffered_stream* b) {
     switch(convention) {
         case CR: push_byte(13, b);
                  break;
@@ -65,8 +70,6 @@ push_newline(convention_t convention, struct Buffered_stream* b) {
         case CRLF: push_byte(13, b);
                    push_byte(10, b);
                    break;
-        default: fprintf(stderr, "endlines : internal error, unknown convention\n");
-                 exit(2);
     }
 }
 
@@ -74,59 +77,61 @@ push_newline(convention_t convention, struct Buffered_stream* b) {
 
 // MANAGING AN INPUT BUFFER
 
+static inline bool
+has_data(struct Buffered_stream* b) {
+    return b->buf_ptr < b->buf_size ||
+           !feof(b->stream);
+           /* b->buf_size>=0 TRYING WITHOUT THE COMMENTED BIT */
+}
+
 static inline BYTE
 pull_byte(struct Buffered_stream* b) {
     if(b->buf_ptr < b->buf_size) {
         return b->buffer[(b->buf_ptr) ++];
+    } else {
+        b->buf_size = fread(b->buffer, 1, BUFFERSIZE, b->stream);
+        b->buf_ptr = 0;
+        return pull_byte(b);
     }
-    if(b->buf_size==0 || feof(b->stream)) {
-        b->blocked = true;
-        return 0;
-    }
-    b->buf_size = fread(b->buffer, 1, BUFFERSIZE, b->stream);
-    b->buf_ptr = 0;
-    return pull_byte(b);
 }
 
 
-// LOOKING OUT FOR SOMETHING WEIRD
+
+// LOOKING OUT FOR BINARY DATA IN A STREAM
 
 static inline bool
 is_control_char(BYTE byte) {
     return (byte <= 8 || (byte <= 31 && byte >= 14));
 }
 
-// BUSINESS
 
 
-void
-convert(FILE* p_instream, FILE* p_outstream, convention_t convention, report_t * report) {
+// MAIN CONVERSION LOOP
+
+Report
+convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     struct Buffered_stream input_stream; 
     struct Buffered_stream output_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
     setup_output_buffered_stream(&output_stream, p_outstream);
 
-    report->lines = 0;
-    report->contains_control_chars = false;
+    Report report = {.lines=0, .contains_control_chars=false};
 
     BYTE byte;
     bool last_was_13 = false;
 
-    for(;;) {
+    while(has_data(&input_stream)) {
         byte = pull_byte(&input_stream);
-        if(input_stream.blocked) {
-            break;
-        }
         if(is_control_char(byte)) {
-            report->contains_control_chars = true;
+            report.contains_control_chars = true;
         }
         if(byte == 13) {
-            report->lines ++;
+            report.lines ++;
             push_newline(convention, &output_stream);
             last_was_13 = true;
         } else if(byte == 10) {
             if(!last_was_13) {
-                report->lines ++;
+                report.lines ++;
                 push_newline(convention, &output_stream);
             }
             last_was_13 = false;
@@ -135,5 +140,6 @@ convert(FILE* p_instream, FILE* p_outstream, convention_t convention, report_t *
             last_was_13 = false;
         }
     }
-    flush_out_buffer(&output_stream);
+    flush_buffer(&output_stream);
+    return report;
 }

@@ -3,22 +3,40 @@
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   endlines : Mathias Dolidon / 2014 */
+   endlines : Mathias Dolidon / 2014-2015 */
 
 #ifndef _ENDLINES_H
 #define _ENDLINES_H_
 
 
-#include <stdio.h>
-#include <stdlib.h>
+
+
+// If you have something to configure, it's probably
+// one of these three values.
+
+
+#define VERSION "0.3.3"
+#define BUFFERSIZE 15000
+#define TMP_FILE_NAME ".tmp_endlines"
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// The rest is made up of :
+// - common includes
+// - common type definitions
+// - function definitions
+
 #include <stdbool.h>
+#include <stdio.h>     // for FILE type, if nothing else
 
 #ifndef BYTE
 #define BYTE unsigned char
 #endif
 
-
-#define VERSION "0.3.2"
 
 // All the conventions we know about.
 // Define the enum values here.
@@ -29,33 +47,19 @@ typedef enum {
     CR,
     LF,
     CRLF
-} convention_t;
+} Convention;
 
 
 // Reports from the conversion function to the caller
 typedef struct {
     int lines;
     bool contains_control_chars;
-} report_t;
-
-// Command line options
-typedef struct {
-    convention_t convention;
-    int files;
-    bool quiet;
-    bool verbose;
-    bool binaries;
-    bool keepdate;
-} options_t;
-
-
-// The name for the temporary file that's written to in file mode.
-#define TMP_FILE_NAME ".tmp_endlines"
+} Report;
 
 
 // This function means business.
 // It is exported by engine.c
-void
-convert(FILE* p_instream, FILE* p_outstream, convention_t convention, report_t* report);
+Report
+convert(FILE* p_instream, FILE* p_outstream, Convention convention);
 
 #endif
