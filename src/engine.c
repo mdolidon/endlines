@@ -16,27 +16,27 @@
 // Just be reasonable : don't try to pull from an output stream,
 // and don't try to push into an input stream.
 
-struct Buffered_stream {
+typedef struct {
     FILE* stream;
     BYTE buffer[BUFFERSIZE];
     int buf_size;
     int buf_ptr;
-};
+} Buffered_stream;
 
 static inline void
-setup_base_buffered_stream(struct Buffered_stream* b, FILE* stream) {
+setup_base_buffered_stream(Buffered_stream* b, FILE* stream) {
     b->stream = stream;
     b->buf_size = BUFFERSIZE;
 }
 
 static inline void
-setup_input_buffered_stream(struct Buffered_stream* b, FILE* stream) {
+setup_input_buffered_stream(Buffered_stream* b, FILE* stream) {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = BUFFERSIZE;
 }
 
 static inline void
-setup_output_buffered_stream(struct Buffered_stream* b, FILE* stream) {
+setup_output_buffered_stream(Buffered_stream* b, FILE* stream) {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = 0;
 }
@@ -46,13 +46,13 @@ setup_output_buffered_stream(struct Buffered_stream* b, FILE* stream) {
 // MANAGING AN OUTPUT BUFFER
 
 static inline void
-flush_buffer(struct Buffered_stream* b) {
+flush_buffer(Buffered_stream* b) {
     fwrite(b->buffer, 1, b->buf_ptr, b->stream);
     b->buf_ptr = 0;
 }
 
 static inline void
-push_byte(BYTE value, struct Buffered_stream* b) {
+push_byte(BYTE value, Buffered_stream* b) {
     b->buffer[b->buf_ptr] = value;
     ++ b->buf_ptr;
     if(b->buf_ptr == b->buf_size) {
@@ -61,7 +61,7 @@ push_byte(BYTE value, struct Buffered_stream* b) {
 }
 
 static inline void
-push_newline(Convention convention, struct Buffered_stream* b) {
+push_newline(Convention convention, Buffered_stream* b) {
     switch(convention) {
         case CR: push_byte(13, b);
                  break;
@@ -78,14 +78,14 @@ push_newline(Convention convention, struct Buffered_stream* b) {
 // MANAGING AN INPUT BUFFER
 
 static inline bool
-has_data(struct Buffered_stream* b) {
+has_data(Buffered_stream* b) {
     return b->buf_ptr < b->buf_size ||
            !feof(b->stream);
            /* b->buf_size>=0 TRYING WITHOUT THE COMMENTED BIT */
 }
 
 static inline BYTE
-pull_byte(struct Buffered_stream* b) {
+pull_byte(Buffered_stream* b) {
     if(b->buf_ptr < b->buf_size) {
         return b->buffer[(b->buf_ptr) ++];
     } else {
@@ -110,8 +110,8 @@ is_control_char(BYTE byte) {
 
 Report
 convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
-    struct Buffered_stream input_stream; 
-    struct Buffered_stream output_stream;
+    Buffered_stream input_stream; 
+    Buffered_stream output_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
     setup_output_buffered_stream(&output_stream, p_outstream);
 
