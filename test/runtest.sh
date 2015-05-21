@@ -71,6 +71,19 @@ fi
 
 
 
+cat unixref | ../endlines oldmac 2>/dev/null | ../endlines win 2>/dev/null >pipetest
+PIPETEST=`$MD5<pipetest`
+
+if [[ "$WINREF" == "$PIPETEST" ]]
+then
+    echo "OK : using with pipes"
+else
+    echo "FAILURE : using with pipes yielded non matching output"
+    FAILURES="yes"
+fi
+
+
+
 #
 # Part 2 : large files, testing the buffers' integrity
 #
@@ -95,7 +108,6 @@ else
     echo "FAILURE : large file processing ; buffered access mechanism may be damaged"
     FAILURES="yes"
 fi
-
 
 
 
