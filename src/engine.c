@@ -81,7 +81,6 @@ static inline bool
 has_data(Buffered_stream* b) {
     return b->buf_ptr < b->buf_size ||
            !feof(b->stream);
-           /* b->buf_size>=0 TRYING WITHOUT THE COMMENTED BIT */
 }
 
 static inline BYTE

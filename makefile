@@ -1,8 +1,8 @@
 CC=cc
 CFLAGS= -O3 -Wall -std=c99
 LDFLAGS=
-BODIES=src/engine.c src/main.c
-HEADERS=src/endlines.h
+BODIES=src/walkers.c src/engine.c src/main.c
+HEADERS=src/endlines.h src/walkers.h
 OBJECTS=$(BODIES:.c=.o)
 
 all: $(BODIES) $(HEADERS) endlines

@@ -6,6 +6,8 @@
 endlines : Mathias Dolidon / 2014-2015 */
 
 #include "endlines.h"
+#include "walkers.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -79,6 +81,8 @@ display_help_and_quit() {
     fprintf(stderr, "   -v / --verbose  : print more about what's going on.\n");
     fprintf(stderr, "   -b / --binaries : don't skip binary files.\n");
     fprintf(stderr, "   -k / --keepdate : keep files' last modified and last access time stamps.\n");
+    fprintf(stderr, "   -r / --recurse  : recurse into directories.\n");
+    fprintf(stderr, "   -h / --hidden   : process hidden files (/directories) too.\n");
     fprintf(stderr, "   --version       : print version number.\n\n");
     fprintf(stderr, " Example :\n");
     fprintf(stderr, "   endlines unix -k `find . -name \"*.html\"`\n\n");
@@ -94,19 +98,31 @@ display_help_and_quit() {
 
 typedef struct {
     Convention convention;
-    int files;
     bool quiet;
     bool verbose;
     bool binaries;
     bool keepdate;
+    bool recurse;
+    bool process_hidden;
+    char** filenames;
+    int files;
 } AppOptions;
 
 AppOptions
-parse_options(int argc, char**argv) {
-    AppOptions options = {.files=0, .quiet=false, .binaries=false, .keepdate=false, .verbose=false};
+parse_command_line(int argc, char**argv) {
+    AppOptions options = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
+    .recurse=false, .process_hidden=false, .filenames=NULL, .files=0};
+
+    options.filenames = malloc(argc*sizeof(char*)); // will be marginally too big, we can live with that
+    if(options.filenames == NULL) {
+        fprintf(stderr, "Can't allocate memory\n");
+        exit(1);
+    }
+
     int i;
     for(i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
+            options.filenames[options.files] = argv[i];
             ++ options.files;
             continue;
         } else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
@@ -124,6 +140,8 @@ parse_options(int argc, char**argv) {
             options.binaries = true;
         } else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
             options.keepdate = true;
+        } else if(!strcmp(argv[i], "-r") || !strcmp(argv[i], "--recurse")) {
+            options.recurse = true;
         } else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
             exit(4);
@@ -138,23 +156,20 @@ parse_options(int argc, char**argv) {
 // CONVERTING ONE FILE
 //
 
-#define PROCESSING_STATUSES_COUNT 5
+#define PROCESSING_STATUSES_COUNT 4
 typedef enum {
     CAN_CONTINUE,
     DONE,
     SKIPPED_BINARY,
-    SKIPPED_DIRECTORY,
     SKIPPED_ERROR,
 } processing_status;
 
 
 processing_status
-get_file_stats(char *file_name, struct stat* statinfo) {
-    if(stat(file_name, statinfo)) {
-        fprintf(stderr, "endlines : can not read %s\n", file_name);
+get_file_stats(char *filename, struct stat* statinfo) {
+    if(stat(filename, statinfo)) {
+        fprintf(stderr, "endlines : can not read %s\n", filename);
         return SKIPPED_ERROR;
-    } else if(S_ISDIR(statinfo->st_mode)) {
-        return SKIPPED_DIRECTORY;
     } else {
         return CAN_CONTINUE;
     }
@@ -169,20 +184,20 @@ get_file_times(struct stat* statinfo) {
 }
 
 processing_status
-open_files(FILE** in, char* in_file_name, FILE** out, char* out_file_name) {
-    *in = fopen(in_file_name, "rb");
+open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
+    *in = fopen(in_filename, "rb");
     if(*in == NULL) {
-        fprintf(stderr, "endlines : can not read %s\n", in_file_name);
+        fprintf(stderr, "endlines : can not read %s\n", in_filename);
         return SKIPPED_ERROR;
     }
-    if(access(in_file_name, W_OK)) {
-        fprintf(stderr, "endlines : can not write over %s\n", in_file_name);
+    if(access(in_filename, W_OK)) {
+        fprintf(stderr, "endlines : can not write over %s\n", in_filename);
         fclose(*in);
         return SKIPPED_ERROR;
     }
-    *out = fopen(TMP_FILE_NAME, "wb");
+    *out = fopen(TMP_FILENAME, "wb");
     if(*out == NULL) {
-        fprintf(stderr, "endlines : can not create %s\n", out_file_name);
+        fprintf(stderr, "endlines : can not create %s\n", out_filename);
         fclose(*in);
         return SKIPPED_ERROR;
     }
@@ -190,14 +205,14 @@ open_files(FILE** in, char* in_file_name, FILE** out, char* out_file_name) {
 }
 
 processing_status
-move_temp_file_to_destination(char* file_name) {
-    int err = remove(file_name);
+move_temp_file_to_destination(char* filename) {
+    int err = remove(filename);
     if(err) {
-        fprintf(stderr, "endlines : can not write over %s\n", file_name);
-        remove(TMP_FILE_NAME);
+        fprintf(stderr, "endlines : can not write over %s\n", filename);
+        remove(TMP_FILENAME);
         return SKIPPED_ERROR;
     }
-    rename(TMP_FILE_NAME, file_name);
+    rename(TMP_FILENAME, filename);
     return CAN_CONTINUE;
 }
 
@@ -206,15 +221,15 @@ move_temp_file_to_destination(char* file_name) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
 processing_status
-convert_one_file(char *file_name, AppOptions * options) {
+convert_one_file(char *filename, AppOptions * options) {
     struct stat statinfo;
     processing_status partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
 
-    TRY get_file_stats(file_name, &statinfo); CATCH
+    TRY get_file_stats(filename, &statinfo); CATCH
     struct utimbuf original_file_times = get_file_times(&statinfo);
-    TRY open_files(&in, file_name, &out, TMP_FILE_NAME); CATCH
+    TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
     Report report = convert(in, out, options->convention);
 
@@ -222,14 +237,14 @@ convert_one_file(char *file_name, AppOptions * options) {
     fclose(out);
 
     if(report.contains_control_chars && !options->binaries) {
-        remove(TMP_FILE_NAME);
+        remove(TMP_FILENAME);
         return SKIPPED_BINARY;
     }
 
-    TRY move_temp_file_to_destination(file_name); CATCH
+    TRY move_temp_file_to_destination(filename); CATCH
 
     if(options->keepdate) {
-        utime(file_name, &original_file_times);
+        utime(filename, &original_file_times);
     }
     return DONE;
 }
@@ -242,22 +257,28 @@ convert_one_file(char *file_name, AppOptions * options) {
 //
 // HANDLING A CONVERSION BATCH
 //
+// First the helpers...
+//
+
+typedef struct {
+    int totals[PROCESSING_STATUSES_COUNT];
+    AppOptions* options;
+} Accumulator;
+
 
 void
-print_verbose_file_outcome(char * file_name, processing_status outcome) {
+print_verbose_file_outcome(char * filename, processing_status outcome) {
     switch(outcome) {
-        case DONE: fprintf(stderr, "endlines : converted %s\n", file_name);
+        case DONE: fprintf(stderr, "endlines : converted %s\n", filename);
             break;
-        case SKIPPED_DIRECTORY: fprintf(stderr, "endlines : skipped directory %s\n", file_name);
-            break;
-        case SKIPPED_BINARY: fprintf(stderr, "endlines : skipped probable binary %s\n", file_name);
+        case SKIPPED_BINARY: fprintf(stderr, "endlines : skipped probable binary %s\n", filename);
             break;
         default: break;
     }
 }
 
 void
-print_totals(int done, int directories, int binaries, int errors) {
+print_totals(int done, int directories, int binaries, int hidden, int errors) {
         fprintf(stderr,     "endlines : %i file%s converted\n", done, done>1?"s":"");
         if(directories) {
             fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
@@ -265,33 +286,56 @@ print_totals(int done, int directories, int binaries, int errors) {
         if(binaries) {
             fprintf(stderr, "           %i binar%s skipped\n", binaries, binaries>1?"ies":"y");
         }
+        if(hidden) {
+            fprintf(stderr, "           %i hidden file%s skipped\n", hidden, hidden>1?"s":"");
+        }
         if(errors) {
             fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
         }
 }
 
+//
+// ...and now the business end of batch runs
+//
+
+void walkers_callback(char* filename, void* p_accumulator) {
+    Accumulator* accumulator = (Accumulator*) p_accumulator;
+    processing_status outcome = convert_one_file(filename, accumulator->options);
+    ++ accumulator->totals[outcome];
+    if(accumulator->options->verbose) {
+        print_verbose_file_outcome(filename, outcome);
+    } 
+}
+
 
 void
 convert_files(int argc, char ** argv, AppOptions* options)  {
-    int totals[PROCESSING_STATUSES_COUNT] = {0,0,0,0,0};
-    processing_status outcome;
+    Accumulator accumulator;
+    for(int i=0; i<PROCESSING_STATUSES_COUNT; ++i) {
+        accumulator.totals[i] = 0;
+    }
+    accumulator.options = options;
+
+    Walk_tracker tracker = make_default_walk_tracker();
+    tracker.process_file = &walkers_callback;
+    tracker.accumulator = &accumulator;
+    tracker.verbose = options->verbose;
+    tracker.recurse = options->recurse;
+    tracker.skip_hidden = !options->process_hidden;
+
     if(!options->quiet) {
         fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
     }
-    for(int i=2; i<argc; ++i) {
-        if(argv[i][0] != '-') {
-            outcome = convert_one_file(argv[i], options);
-            ++ totals[outcome];
-            if(options->verbose) {
-                print_verbose_file_outcome(argv[i], outcome);
-            } 
-        }
-    }
+
+    walk_filenames(options->filenames, options->files, &tracker);
+
     if(!options->quiet) {
-        print_totals(totals[DONE],
-                     totals[SKIPPED_DIRECTORY],
-                     totals[SKIPPED_BINARY],
-                     totals[SKIPPED_ERROR]);
+        print_totals(accumulator.totals[DONE],
+                     tracker.skipped_directories_count,
+                     accumulator.totals[SKIPPED_BINARY],
+                     tracker.skipped_hidden_files_count,
+                     accumulator.totals[SKIPPED_ERROR] + tracker.read_errors_count
+        );
     }
 }
 
@@ -303,12 +347,12 @@ convert_files(int argc, char ** argv, AppOptions* options)  {
 
 int
 main(int argc, char**argv) {
-    if(argc<2) {
+    if(argc <= 1) {
         display_help_and_quit();
     }
 
     setup_conventions_display_names();
-    AppOptions options = parse_options(argc, argv);
+    AppOptions options = parse_command_line(argc, argv);
 
     if(options.files) {
         convert_files(argc, argv, &options);
@@ -319,6 +363,5 @@ main(int argc, char**argv) {
         }
         convert(stdin, stdout, options.convention);
     }
-
     return 0;
 }

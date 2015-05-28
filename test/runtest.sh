@@ -206,7 +206,7 @@ rmdir dummydir
 
 ../endlines unix doesnotexist 2>notexisttest >/dev/null
 DOESNOTEXIST=`cat notexisttest`
-if [[ $DOESNOTEXIST == *"can not read"* ]]
+if [[ $DOESNOTEXIST == *"an not read"* ]]
 then
     echo "OK : notifies the user if a file can't be opened"
 else
