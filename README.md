@@ -51,8 +51,7 @@ The help screen
        --version       : print version number.
     
      Example :
-       endlines unix -k `find . -name "*.html"`
-
+       endlines unix -k -r an_imported_directory an_imported_file.txt
 
 Developers
 ----------
@@ -63,5 +62,5 @@ The code is very simple. Just remember to run `make test` before you come out.
 Latest releases
 ---------------
 0.4.1 : infers hidden file names correctly
-0.4.0 : introduces directory recursion and skipping hidden file ; known bug in hidden file name detection
 
+0.4.0 : introduces directory recursion and skipping hidden file ; known bug in hidden file name detection
