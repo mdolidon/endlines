@@ -85,7 +85,7 @@ display_help_and_quit() {
     fprintf(stderr, "   -h / --hidden   : process hidden files (/directories) too.\n");
     fprintf(stderr, "   --version       : print version number.\n\n");
     fprintf(stderr, " Example :\n");
-    fprintf(stderr, "   endlines unix -k `find . -name \"*.html\"`\n\n");
+    fprintf(stderr, "   endlines unix -k -r an_imported_directory an_imported_file.txt\n\n");
     exit(1);
 }
 
@@ -109,7 +109,7 @@ typedef struct {
 } AppOptions;
 
 AppOptions
-parse_command_line(int argc, char**argv) {
+parse_command_line(int argc, char** argv) {
     AppOptions options = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
     .recurse=false, .process_hidden=false, .filenames=NULL, .files=0};
 
@@ -166,13 +166,12 @@ typedef enum {
 
 
 processing_status
-get_file_stats(char *filename, struct stat* statinfo) {
+get_file_stats(char* filename, struct stat* statinfo) {
     if(stat(filename, statinfo)) {
         fprintf(stderr, "endlines : can not read %s\n", filename);
         return SKIPPED_ERROR;
-    } else {
-        return CAN_CONTINUE;
-    }
+    } 
+    return CAN_CONTINUE;
 } 
 
 struct utimbuf
