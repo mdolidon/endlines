@@ -24,10 +24,10 @@ endlines : Mathias Dolidon / 2014-2015 */
 typedef struct {
     char name[10];
     Convention convention;
-} command_line_to_convention;
+} cmd_line_args_to_convention;
 
 #define CL_NAMES_COUNT 10
-const command_line_to_convention cl_names[CL_NAMES_COUNT] = {
+const cmd_line_args_to_convention cl_names[CL_NAMES_COUNT] = {
     {.name="lf",      .convention=LF},
     {.name="unix",    .convention=LF},
     {.name="linux",   .convention=LF},
@@ -106,16 +106,16 @@ typedef struct {
     bool recurse;
     bool process_hidden;
     char** filenames;
-    int files;
-} AppOptions;
+    int file_count;
+} CommandLine;
 
-AppOptions
-parse_command_line(int argc, char** argv) {
-    AppOptions options = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
-    .recurse=false, .process_hidden=false, .filenames=NULL, .files=0};
+CommandLine
+parse_cmd_line_args(int argc, char** argv) {
+    CommandLine cmd_line_args = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
+    .recurse=false, .process_hidden=false, .filenames=NULL, .file_count=0};
 
-    options.filenames = malloc(argc*sizeof(char*)); // will be marginally too big, we can live with that
-    if(options.filenames == NULL) {
+    cmd_line_args.filenames = malloc(argc*sizeof(char*)); // will be marginally too big, we can live with that
+    if(cmd_line_args.filenames == NULL) {
         fprintf(stderr, "Can't allocate memory\n");
         exit(1);
     }
@@ -123,8 +123,8 @@ parse_command_line(int argc, char** argv) {
     int i;
     for(i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
-            options.filenames[options.files] = argv[i];
-            ++ options.files;
+            cmd_line_args.filenames[cmd_line_args.file_count] = argv[i];
+            ++ cmd_line_args.file_count;
             continue;
         } else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
             display_help_and_quit();
@@ -132,23 +132,23 @@ parse_command_line(int argc, char** argv) {
             fprintf(stderr, "endlines version %s\n", VERSION);
             exit(0);
         } else if(i==1) {
-            options.convention = read_convention_from_string(argv[1]);
+            cmd_line_args.convention = read_convention_from_string(argv[1]);
         } else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
-            options.quiet = true;
+            cmd_line_args.quiet = true;
         } else if(!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
-            options.verbose = true;
+            cmd_line_args.verbose = true;
         } else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
-            options.binaries = true;
+            cmd_line_args.binaries = true;
         } else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
-            options.keepdate = true;
+            cmd_line_args.keepdate = true;
         } else if(!strcmp(argv[i], "-r") || !strcmp(argv[i], "--recurse")) {
-            options.recurse = true;
+            cmd_line_args.recurse = true;
         } else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
             exit(4);
         }
     }
-    return options;
+    return cmd_line_args;
 }
 
 
@@ -221,7 +221,7 @@ move_temp_file_to_destination(char* filename) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
 processing_status
-convert_one_file(char *filename, AppOptions * options) {
+convert_one_file(char* filename, CommandLine* cmd_line_args) {
     struct stat statinfo;
     processing_status partial_status;
     FILE *in  = NULL;
@@ -231,19 +231,19 @@ convert_one_file(char *filename, AppOptions * options) {
     struct utimbuf original_file_times = get_file_times(&statinfo);
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
-    Report report = convert(in, out, options->convention);
+    Report report = convert(in, out, cmd_line_args->convention);
 
     fclose(in);
     fclose(out);
 
-    if(report.contains_control_chars && !options->binaries) {
+    if(report.contains_control_chars && !cmd_line_args->binaries) {
         remove(TMP_FILENAME);
         return SKIPPED_BINARY;
     }
 
     TRY move_temp_file_to_destination(filename); CATCH
 
-    if(options->keepdate) {
+    if(cmd_line_args->keepdate) {
         utime(filename, &original_file_times);
     }
     return DONE;
@@ -262,7 +262,7 @@ convert_one_file(char *filename, AppOptions * options) {
 
 typedef struct {
     int totals[PROCESSING_STATUSES_COUNT];
-    AppOptions* options;
+    CommandLine* cmd_line_args;
 } Accumulator;
 
 
@@ -301,36 +301,36 @@ print_totals(int done, int directories, int binaries, int hidden, int errors) {
 void
 walkers_callback(char* filename, void* p_accumulator) {
     Accumulator* accumulator = (Accumulator*) p_accumulator;
-    processing_status outcome = convert_one_file(filename, accumulator->options);
+    processing_status outcome = convert_one_file(filename, accumulator->cmd_line_args);
     ++ accumulator->totals[outcome];
-    if(accumulator->options->verbose) {
+    if(accumulator->cmd_line_args->verbose) {
         print_verbose_file_outcome(filename, outcome);
     }
 }
 
 
 void
-convert_files(int argc, char ** argv, AppOptions* options)  {
+convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
     Accumulator accumulator;
     for(int i=0; i<PROCESSING_STATUSES_COUNT; ++i) {
         accumulator.totals[i] = 0;
     }
-    accumulator.options = options;
+    accumulator.cmd_line_args = cmd_line_args;
 
     Walk_tracker tracker = make_default_walk_tracker();
     tracker.process_file = &walkers_callback;
     tracker.accumulator = &accumulator;
-    tracker.verbose = options->verbose;
-    tracker.recurse = options->recurse;
-    tracker.skip_hidden = !options->process_hidden;
+    tracker.verbose = cmd_line_args->verbose;
+    tracker.recurse = cmd_line_args->recurse;
+    tracker.skip_hidden = !cmd_line_args->process_hidden;
 
-    if(!options->quiet) {
-        fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[options->convention]);
+    if(!cmd_line_args->quiet) {
+        fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[cmd_line_args->convention]);
     }
 
-    walk_filenames(options->filenames, options->files, &tracker);
+    walk_filenames(cmd_line_args->filenames, cmd_line_args->file_count, &tracker);
 
-    if(!options->quiet) {
+    if(!cmd_line_args->quiet) {
         print_totals(accumulator.totals[DONE],
                      tracker.skipped_directories_count,
                      accumulator.totals[SKIPPED_BINARY],
@@ -353,15 +353,15 @@ main(int argc, char**argv) {
     }
 
     setup_conventions_display_names();
-    AppOptions options = parse_command_line(argc, argv);
+    CommandLine cmd_line_args = parse_cmd_line_args(argc, argv);
 
-    if(options.files) {
-        convert_files(argc, argv, &options);
+    if(cmd_line_args.file_count > 0) {
+        convert_files(argc, argv, &cmd_line_args);
     } else {
-        if(!options.quiet) {
-            fprintf(stderr, "Converting stdin to %s\n", convention_display_names[options.convention]);
+        if(!cmd_line_args.quiet) {
+            fprintf(stderr, "Converting stdin to %s\n", convention_display_names[cmd_line_args.convention]);
         }
-        convert(stdin, stdout, options.convention);
+        convert(stdin, stdout, cmd_line_args.convention);
     }
     return 0;
 }
