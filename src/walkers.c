@@ -1,10 +1,16 @@
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// walkers library : Mathias Dolidon / 2015
+
 #include "walkers.h"
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
-#define PROGNAME "endlines"
 
 
 Walk_tracker
@@ -58,6 +64,72 @@ found_a_directory(char* filename, Walk_tracker* tracker) {
 }
 
 
+
+
+
+        //
+        // THE FILE NAMES WALKER
+        //
+
+typedef enum {
+    YES, NO, NOT_APPLICABLE
+} trivalent;
+
+static inline trivalent
+could_be_a_hidden_filename_with_a_path_prefix(char *filename, int len) {
+    for(int i=len-2; i>=0; --i) {
+        if(filename[i]=='/') {
+            if(filename[i+1]=='.') {
+                return YES;
+            } else {
+                return NO;
+            }
+        }
+    }
+    return NOT_APPLICABLE;
+}
+
+static inline bool
+is_a_hidden_file_name_without_a_path_prefix(char *filename, int len) {
+   return (filename[0]=='.' && strcmp(filename, ".") && strcmp(filename, "..") &&
+                               strcmp(filename, "./") && strcmp(filename, "../"));
+}
+
+static bool
+is_hidden_filename(char* filename) {
+    int len = strlen(filename);
+    trivalent with_prefix = could_be_a_hidden_filename_with_a_path_prefix(filename, len);
+    if(with_prefix == YES) {
+        return true;
+    } else if(with_prefix == NO) {
+        return false;
+    } else {
+        return is_a_hidden_file_name_without_a_path_prefix(filename, len);
+    }
+}
+
+void
+walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
+    struct stat statinfo;
+    for(int i=0; i<file_count; ++i) {
+        if(is_hidden_filename(filenames[i])) {
+            found_a_hidden_file(filenames[i], tracker);
+        } else if(stat(filenames[i], &statinfo)) {
+            found_an_unreadable_file(filenames[i], tracker);
+        } else if(S_ISDIR(statinfo.st_mode)) {
+            found_a_directory(filenames[i], tracker);
+        } else if(S_ISREG(statinfo.st_mode)) {
+            found_a_file_that_needs_processing(filenames[i], tracker);
+        }
+    }
+}
+
+
+        //
+        // THE DIRECTORY WALKER
+        //
+
+
 // returns 0 on success
 static int
 append_filename_to_base_path(char* base_path, int base_path_length, char* filename) {
@@ -77,79 +149,13 @@ reset_base_path_termination(char* base_path, int base_path_length) {
 }
 
 
-
-
-        //
-        // THE FILE NAMES WALKER
-        //
-
-typedef enum {
-    YES,
-    NO,
-    MAYBE
-} trivalent;
-
-static inline trivalent 
-is_a_hidden_filename_with_a_path_prefix(char *filename, int len) {
-    for(int i=len-2; i>=0; --i) {
-        if(filename[i]=='/') {
-            if(filename[i+1]=='.') {
-                return YES;
-            } else {
-                return NO;
-            }
-        }
-    }
-    return MAYBE;
-}
-
-static inline bool
-is_a_hidden_file_name_witout_a_path_prefix(char *filename, int len) {
-   return (filename[0]=='.' && strcmp(filename, ".") && strcmp(filename, "..") &&
-                               strcmp(filename, "./") && strcmp(filename, "../"));
-}
-
-static bool is_hidden_filename(char* filename) {
-    int len = strlen(filename);
-    trivalent with_prefix = is_a_hidden_filename_with_a_path_prefix(filename, len);
-    if(with_prefix == YES) {
-        return true;
-    } else if(with_prefix == NO) {
-        return false;
-    } else {
-        return is_a_hidden_file_name_witout_a_path_prefix(filename, len);
-    }
-}
-
-void 
-walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
-    struct stat statinfo;
-    for(int i=0; i<file_count; ++i) {
-        if(is_hidden_filename(filenames[i])) {
-            found_a_hidden_file(filenames[i], tracker);
-        } else if(stat(filenames[i], &statinfo)) {
-            found_an_unreadable_file(filenames[i], tracker);
-        } else if(S_ISDIR(statinfo.st_mode)) {
-            found_a_directory(filenames[i], tracker);
-        } else if(S_ISREG(statinfo.st_mode)) {
-            found_a_file_that_needs_processing(filenames[i], tracker);
-        }
-    }
-}
-
-
-        // 
-        // THE DIRECTORY WALKER
-        //
-
-
 // returns 0 on success
 static int
 prepare_to_walk_a_directory(char* directory_name, int dirname_length, char* file_path_buffer, DIR** p_pdir) {
     if(dirname_length+1 >= WALKERS_MAX_PATH_LENGTH) {
         fprintf(stderr, "%s : pathname exceeding maximum length : %s\n", PROGNAME, directory_name);
         return -1;
-    } 
+    }
 
     strcpy(file_path_buffer, directory_name);
 
@@ -173,7 +179,7 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
 
     int dirname_length = strlen(directory_name);
     if(prepare_to_walk_a_directory(directory_name, dirname_length, file_path_buffer, &pdir)) {
-        return; 
+        return;
     }
 
     // iterating over its contents and letting walk_filenames figure out what to do with each piece of it

@@ -51,7 +51,7 @@ read_convention_from_string(char * name) {
     exit(8);
 }
 
-const char* convention_display_names[KNOWN_CONVENTIONS_COUNT]; 
+const char* convention_display_names[KNOWN_CONVENTIONS_COUNT];
 
 void
 setup_conventions_display_names() {
@@ -59,6 +59,7 @@ setup_conventions_display_names() {
     convention_display_names[LF] = "Unix (LF)";
     convention_display_names[CRLF] = "Windows (CR-LF)";
 }
+
 
 
 //
@@ -170,9 +171,9 @@ get_file_stats(char* filename, struct stat* statinfo) {
     if(stat(filename, statinfo)) {
         fprintf(stderr, "endlines : can not read %s\n", filename);
         return SKIPPED_ERROR;
-    } 
+    }
     return CAN_CONTINUE;
-} 
+}
 
 struct utimbuf
 get_file_times(struct stat* statinfo) {
@@ -297,13 +298,14 @@ print_totals(int done, int directories, int binaries, int hidden, int errors) {
 // ...and now the business end of batch runs
 //
 
-void walkers_callback(char* filename, void* p_accumulator) {
+void
+walkers_callback(char* filename, void* p_accumulator) {
     Accumulator* accumulator = (Accumulator*) p_accumulator;
     processing_status outcome = convert_one_file(filename, accumulator->options);
     ++ accumulator->totals[outcome];
     if(accumulator->options->verbose) {
         print_verbose_file_outcome(filename, outcome);
-    } 
+    }
 }
 
 
@@ -355,8 +357,7 @@ main(int argc, char**argv) {
 
     if(options.files) {
         convert_files(argc, argv, &options);
-    }
-    else {
+    } else {
         if(!options.quiet) {
             fprintf(stderr, "Converting stdin to %s\n", convention_display_names[options.convention]);
         }

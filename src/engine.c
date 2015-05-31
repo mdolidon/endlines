@@ -40,7 +40,7 @@ setup_output_buffered_stream(Buffered_stream* b, FILE* stream) {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = 0;
 }
-  
+
 
 
 // MANAGING AN OUTPUT BUFFER
@@ -109,7 +109,7 @@ is_control_char(BYTE byte) {
 
 Report
 convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
-    Buffered_stream input_stream; 
+    Buffered_stream input_stream;
     Buffered_stream output_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
     setup_output_buffered_stream(&output_stream, p_outstream);

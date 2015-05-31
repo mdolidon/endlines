@@ -4,11 +4,15 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// walkers library : Mathias Dolidon / 2015 
+// walkers library : Mathias Dolidon / 2015
 
 
 #ifndef _WALKERS_H_
 #define _WALKERS_H_
+
+// There's no clean cross-platform way to be sure about the program name,
+// so I chose to uncleanly set it here.
+#define PROGNAME "endlines"
 
 #define WALKERS_MAX_PATH_LENGTH 1025
 
@@ -27,12 +31,16 @@
 // Contains parameters and accumulative properties.
 // Parameters :
 //
-// - process_file : the function pointer to the callback. It gets called for all regular file items. It gets called with two parameters :
+// - process_file : the function pointer to the callback.
+//                  It gets called for all regular file items.
+//                  It gets called with two parameters :
 //     1/ a char* to the relative file name
-//     2/ a void* to the walk's accumulator. What the accumulator is is left up to the client. It carries data over from call to call, and can be incrementally modified.
+//     2/ a void* to the walk's accumulator. What the accumulator is is left up to the client.
+//       It carries data over from call to call, and can be incrementally modified.
 //
 // - recurse : call walk_directory automatically when a subdirectory is found.
 // - skip_hidden : skip files whose name starts with a dot.
+// - verbose : self explanatory.
 //
 
 typedef struct {
@@ -70,19 +78,10 @@ make_default_walk_tracker();
 
 // THE WALKERS
 
-void 
-walk_filenames(
-            char** filenames,      // array of strings
-            int file_count,         // length of the array
-            Walk_tracker* tracker
-        );
-
-
+void
+walk_filenames(char** filenames, int file_count, Walk_tracker* tracker);
 
 void
-walk_directory(
-            char* directory_name,
-            Walk_tracker* tracker
-        );
+walk_directory(char* directory_name, Walk_tracker* tracker);
 
 #endif
