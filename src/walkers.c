@@ -53,6 +53,10 @@ found_an_unreadable_file(char* filename, Walk_tracker* tracker) {
 
 static void
 found_a_directory(char* filename, Walk_tracker* tracker) {
+    size_t lastIndex = strlen(filename) - 1;
+    if(filename[lastIndex] == '/') {
+        filename[lastIndex] = 0;
+    }
     if(tracker->recurse) {
         walk_directory(filename, tracker);
     } else {
