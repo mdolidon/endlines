@@ -53,10 +53,6 @@ found_an_unreadable_file(char* filename, Walk_tracker* tracker) {
 
 static void
 found_a_directory(char* filename, Walk_tracker* tracker) {
-    size_t lastIndex = strlen(filename) - 1;
-    if(filename[lastIndex] == '/') {
-        filename[lastIndex] = 0;
-    }
     if(tracker->recurse) {
         walk_directory(filename, tracker);
     } else {
@@ -134,16 +130,22 @@ walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
         //
 
 
-// returns 0 on success
+        // returns 0 on success
 static int
 append_filename_to_base_path(char* base_path, int base_path_length, char* filename) {
-    int total_length = base_path_length + strlen(filename) + 1; // +1 for a slash
+    size_t filename_length = strlen(filename);
+    size_t total_length = base_path_length + filename_length + 1; // +1 for a slash
     if(total_length+1 > WALKERS_MAX_PATH_LENGTH) {              // +1 for terminating 0
         fprintf(stderr, "%s : pathname exceeding maximum length : %s/%s\n", PROGNAME, base_path, filename);
         return 1;
     }
-    base_path[base_path_length] = '/';
-    strcpy(&(base_path[base_path_length+1]), filename);
+
+    if( base_path[base_path_length - 1] != '/') {
+        base_path[base_path_length] = '/';
+        strcpy(&(base_path[base_path_length+1]), filename);
+    } else {
+        strcpy(&(base_path[base_path_length]), filename);
+    }
     return 0;
 }
 
@@ -166,7 +168,7 @@ prepare_to_walk_a_directory(char* directory_name, int dirname_length, char* file
     // opening the directory
     *p_pdir = opendir(directory_name);
     if(*p_pdir == NULL) {
-        fprintf(stderr, "%s : can not open directory %s\n", directory_name, PROGNAME);
+        fprintf(stderr, "%s : can not open directory %s\n", PROGNAME, directory_name);
         return -1;
     }
     return 0;
