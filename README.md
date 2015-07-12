@@ -18,7 +18,7 @@ Three conventions are recognized : Unix, Windows, and legacy Mac. File time stam
 
 
 ### Note about Unicode ###
-UTF-8 is supported, but UCS-2 and UTF-16/32 are not. Such encoded files will be mistaken for binaries, and if the conversion is forced with `-b`, codepoints starting with 0x10 or 0x13 will be mistaken for new-line characters.
+UTF-8 is supported, but UCS-2 and UTF-16/32 are not. Such encoded files will be mistaken for binaries, and if the conversion is forced with `-b`, codepoints containing 0x10 or 0x13 bytes will be mistaken for new-line characters.
 
 Install
 -------
