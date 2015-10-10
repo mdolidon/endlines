@@ -21,12 +21,14 @@ typedef struct {
     BYTE buffer[BUFFERSIZE];
     int buf_size;
     int buf_ptr;
+    int eof;
 } Buffered_stream;
 
 static inline void
 setup_base_buffered_stream(Buffered_stream* b, FILE* stream) {
     b->stream = stream;
     b->buf_size = BUFFERSIZE;
+    b->eof = false;
 }
 
 static inline void
@@ -77,18 +79,16 @@ push_newline(Convention convention, Buffered_stream* b) {
 
 // MANAGING AN INPUT BUFFER
 
-static inline bool
-has_data(Buffered_stream* b) {
-    return b->buf_ptr < b->buf_size ||
-           !feof(b->stream);
-}
-
 static inline BYTE
 pull_byte(Buffered_stream* b) {
     if(b->buf_ptr < b->buf_size) {
         return b->buffer[(b->buf_ptr) ++];
     } else {
         b->buf_size = fread(b->buffer, 1, BUFFERSIZE, b->stream);
+        if(b->buf_size == 0) {
+            b->eof = true;
+            return 0;
+        }
         b->buf_ptr = 0;
         return pull_byte(b);
     }
@@ -119,8 +119,11 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     BYTE byte;
     bool last_was_13 = false;
 
-    while(has_data(&input_stream)) {
+    while(true) {
         byte = pull_byte(&input_stream);
+        if(input_stream.eof) {
+            break;
+        }
         if(is_control_char(byte)) {
             report.contains_control_chars = true;
         }

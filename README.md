@@ -1,7 +1,7 @@
 endlines
 ========
 
-Current version : **0.4.1**
+Current version : **0.4.2**
 
 Easy conversion between new-line conventions.
 
@@ -65,6 +65,9 @@ The code is very simple. Just remember to run `make test` before you come out.
 
 Latest releases
 ---------------
-0.4.1 : infers hidden file names correctly
 
-0.4.0 : introduces directory recursion and skipping hidden file ; known bug in hidden file name detection
+0.4.2 : bug fix : the program does not hang anymore on empty files.
+
+0.4.1 : infers hidden file names correctly.
+
+0.4.0 : introduces directory recursion and skipping hidden file ; known bug in hidden file name detection.

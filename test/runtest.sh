@@ -83,6 +83,25 @@ else
 fi
 
 
+echo "Converting and empty file..."
+rm empty 2>/dev/null
+touch empty
+EMPTYREF=`$MD5<empty`
+../endlines unix empty 2>/dev/null
+EMPTYTEST=`$MD5<empty`
+if [[ "$EMPTYREF" == "$EMPTYTEST" ]]
+then
+    echo "OK : empty file passes"
+else
+    echo "FAILURE : the empty file was not processed correctly"
+    FAILURES="yes"
+fi
+rm empty
+
+
+
+
+
 
 #
 # Part 2 : large files, testing the buffers' integrity

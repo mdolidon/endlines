@@ -188,7 +188,7 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
         return;
     }
 
-    // iterating over its contents and letting walk_filenames figure out what to do with each piece of it
+    // iterating over its contents
     struct dirent *pent;
     while((pent = readdir(pdir)) != NULL) {
         reset_base_path_termination(file_path_buffer, dirname_length);
