@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS= -O3 -Wall -std=c99
+CFLAGS= -O3 -Wall -std=c99 -D_BSD_SOURCE
 LDFLAGS=
 BODIES=src/walkers.c src/engine.c src/main.c
 HEADERS=src/endlines.h src/walkers.h
