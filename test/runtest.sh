@@ -25,8 +25,6 @@ chmod +rw *
 # Part 1 : try various input/output combinations
 #
 
-echo "Round tripping in files mode unix -> oldmac -> win -> unix"
-
 cp unixref oldmactest
 ../endlines oldmac oldmactest &>/dev/null
 
@@ -83,7 +81,6 @@ else
 fi
 
 
-echo "Converting and empty file..."
 rm empty 2>/dev/null
 touch empty
 EMPTYREF=`$MD5<empty`
@@ -101,19 +98,32 @@ rm empty
 
 
 
+cp utf8unixref utf8test
+../endlines win utf8test 2>/dev/null
+
+
+UTFEXPECTED=`$MD5<utf8winref`
+UTFOUT=`$MD5<utf8test`
+
+if [[ "$UTFEXPECTED" == "$UTFOUT" ]]
+then
+    echo "OK : UTF-8"
+else
+    echo "FAILURE : UTF-8 file"
+    FAILURES="yes"
+fi
+rm utf8test
 
 
 #
 # Part 2 : large files, testing the buffers' integrity
 #
 
-echo "...building a large file..."
 for ((i=1;i<=500;i++));
 do
     cat unixref >> bigunixintest
 done
 
-echo "...processing the large file, three times..."
 ../endlines win <bigunixintest 2>/dev/null | ../endlines oldmac 2>/dev/null | ../endlines unix >bigunixouttest 2>/dev/null
 
 

@@ -68,25 +68,26 @@ setup_conventions_display_names() {
 
 void
 display_help_and_quit() {
-    fprintf(stderr, "\n ------ Convert between line ending conventions. ------\n\n");
-    fprintf(stderr, " Use :\n   endlines CONVENTION [OPTIONS] [FILES]\n\n");
+    fprintf(stderr, "\n ------ Convert line endings  ------\n\n");
+    fprintf(stderr, " Use :\n   endlines OUT_CONVENTION [OPTIONS] [FILES]\n\n");
     fprintf(stderr, "   Input conventions are determined automatically.\n   Each input file may possibly use multiple conventions. \n");
-    fprintf(stderr, "   CONVENTION expresses the wished output convention.\n");
-    fprintf(stderr, "   CONVENTION can be : ");
+    fprintf(stderr, "   OUT_CONVENTION can be : ");
     for(int i=0; i<CL_NAMES_COUNT; ++i) {
         fprintf(stderr, "%s ", cl_names[i].name);
     }
     fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n");
-    fprintf(stderr, " Options :\n");
+    fprintf(stderr, " General options :\n");
     fprintf(stderr, "   -q / --quiet    : silence all but the error messages.\n");
     fprintf(stderr, "   -v / --verbose  : print more about what's going on.\n");
+    fprintf(stderr, "   --version       : print version number.\n\n");
+    fprintf(stderr, " File options :\n");
     fprintf(stderr, "   -b / --binaries : don't skip binary files.\n");
     fprintf(stderr, "   -k / --keepdate : keep files' last modified and last access time stamps.\n");
     fprintf(stderr, "   -r / --recurse  : recurse into directories.\n");
-    fprintf(stderr, "   -h / --hidden   : process hidden files (/directories) too.\n");
-    fprintf(stderr, "   --version       : print version number.\n\n");
-    fprintf(stderr, " Example :\n");
-    fprintf(stderr, "   endlines unix -k -r an_imported_directory an_imported_file.txt\n\n");
+    fprintf(stderr, "   -h / --hidden   : process hidden files (/directories) too. \n\n");
+    fprintf(stderr, " Examples :\n");
+    fprintf(stderr, "   endlines unix *.txt\n");
+    fprintf(stderr, "   endlines win -k -r a_folder another_folder\n\n");
     exit(1);
 }
 
