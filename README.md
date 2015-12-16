@@ -62,15 +62,3 @@ Developers
 ----------
 
 The code is very simple. Just remember to run `make test` before you come out.
-
-
-Latest releases
----------------
-
-1.0 : promoting 0.4.2, considered bug free
-
-0.4.2 : bug fix : the program does not hang anymore on empty files.
-
-0.4.1 : infers hidden file names correctly.
-
-0.4.0 : introduces directory recursion and skipping hidden file ; known bug in hidden file name detection.
