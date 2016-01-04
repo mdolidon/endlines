@@ -69,6 +69,23 @@ fi
 
 
 
+
+cp unixref permstest
+chmod 751 permstest
+../endlines unix permstest &>/dev/null
+PERMISSIONS=`ls -l permstest`
+if [[ $PERMISSIONS == *"rwxr-x--x"* ]]
+then
+    echo "OK : preserves file permissions"
+else
+    echo "FAILURE : failed to preserve file permissions"
+    FAILURES="yes"
+fi
+rm permstest
+
+
+
+
 cat unixref | ../endlines oldmac 2>/dev/null | ../endlines win 2>/dev/null >pipetest
 PIPETEST=`$MD5<pipetest`
 

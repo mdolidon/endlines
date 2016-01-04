@@ -206,7 +206,7 @@ open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
 }
 
 processing_status
-move_temp_file_to_destination(char* filename) {
+move_temp_file_to_destination(char* filename, struct stat *statinfo) {
     int err = remove(filename);
     if(err) {
         fprintf(stderr, "endlines : can not write over %s\n", filename);
@@ -214,6 +214,15 @@ move_temp_file_to_destination(char* filename) {
         return SKIPPED_ERROR;
     }
     rename(TMP_FILENAME, filename);
+    err = chmod(filename, statinfo->st_mode);
+    if(err) {
+        fprintf(stderr, "endlines : could not restore permissions for %s\n", filename);
+    }
+    err = chown(filename, statinfo->st_uid, statinfo->st_gid);
+    if(err) {
+        fprintf(stderr, "endlines : could not restore ownership for %s\n", filename);
+    }
+
     return CAN_CONTINUE;
 }
 
@@ -242,7 +251,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args) {
         return SKIPPED_BINARY;
     }
 
-    TRY move_temp_file_to_destination(filename); CATCH
+    TRY move_temp_file_to_destination(filename, &statinfo); CATCH
 
     if(cmd_line_args->keepdate) {
         utime(filename, &original_file_times);

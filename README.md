@@ -1,7 +1,7 @@
 endlines
 ========
 
-Current version : **1.0**
+Current version : **1.1**
 
 Easy conversion between new-line conventions.
 
@@ -56,6 +56,13 @@ Install
 Apple OSX users may get the binary from the `apple_osx_binary` directory and save it to their `/usr/local/bin`.
 
 Linux and other POSIX users just download the repository and type `sudo make install`. 
+
+
+Recent versions
+---------------
+
+**1.1** : preserves file permissions and ownership
+
 
 
 Developers
