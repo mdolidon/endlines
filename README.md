@@ -62,6 +62,7 @@ Recent versions
 ---------------
 
 **1.2** : fixed hidden files option
+
 **1.1** : preserves file permissions and ownership
 
 
