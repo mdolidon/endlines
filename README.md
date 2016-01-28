@@ -1,7 +1,7 @@
 endlines
 ========
 
-Current version : **1.1**
+Current version : **1.2**
 
 Easy conversion between new-line conventions.
 
@@ -61,6 +61,7 @@ Linux and other POSIX users just download the repository and type `sudo make ins
 Recent versions
 ---------------
 
+**1.2** : fixed hidden files option
 **1.1** : preserves file permissions and ownership
 
 

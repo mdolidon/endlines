@@ -34,15 +34,11 @@ found_a_file_that_needs_processing(char* filename, Walk_tracker* tracker) {
 }
 
 static void
-found_a_hidden_file(char* filename, Walk_tracker* tracker) {
-    if(tracker->skip_hidden) {
-        if(tracker->verbose) {
-            fprintf(stderr, "%s : skipping hidden file : %s\n", PROGNAME, filename);
-        }
-        ++ tracker->skipped_hidden_files_count;
-    } else {
-        found_a_file_that_needs_processing(filename, tracker);
+skip_a_hidden_file(char* filename, Walk_tracker* tracker) {
+    if(tracker->verbose) {
+        fprintf(stderr, "%s : skipping hidden file : %s\n", PROGNAME, filename);
     }
+    ++ tracker->skipped_hidden_files_count;
 }
 
 static void
@@ -112,8 +108,8 @@ void
 walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
     struct stat statinfo;
     for(int i=0; i<file_count; ++i) {
-        if(is_hidden_filename(filenames[i])) {
-            found_a_hidden_file(filenames[i], tracker);
+        if(is_hidden_filename(filenames[i]) && tracker->skip_hidden) {
+            skip_a_hidden_file(filenames[i], tracker);
         } else if(stat(filenames[i], &statinfo)) {
             found_an_unreadable_file(filenames[i], tracker);
         } else if(S_ISDIR(statinfo.st_mode)) {
@@ -198,8 +194,8 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
         if(append_filename_to_base_path(file_path_buffer, dirname_length, pent->d_name)) {
             continue;
         }
-        if(pent->d_name[0] == '.') {
-            found_a_hidden_file(file_path_buffer, tracker);
+        if(pent->d_name[0] == '.' && tracker->skip_hidden ) {
+            skip_a_hidden_file(file_path_buffer, tracker);
         } else if(pent->d_type == DT_DIR) {
             found_a_directory(file_path_buffer, tracker);
         } else if(pent->d_type == DT_REG) {

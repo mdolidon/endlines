@@ -127,7 +127,7 @@ parse_cmd_line_args(int argc, char** argv) {
             cmd_line_args.filenames[cmd_line_args.file_count] = argv[i];
             ++ cmd_line_args.file_count;
             continue;
-        } else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+        } else if(!strcmp(argv[i], "--help")) {
             display_help_and_quit();
         } else if(!strcmp(argv[i], "--version")) {
             fprintf(stderr, "endlines version %s\n", VERSION);
@@ -144,6 +144,8 @@ parse_cmd_line_args(int argc, char** argv) {
             cmd_line_args.keepdate = true;
         } else if(!strcmp(argv[i], "-r") || !strcmp(argv[i], "--recurse")) {
             cmd_line_args.recurse = true;
+        } else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--hidden")) {
+            cmd_line_args.process_hidden = true;
         } else {
             fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
             exit(4);
