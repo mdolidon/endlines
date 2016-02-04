@@ -1,28 +1,18 @@
-endlines
-========
-
 Current version : **1.2**
 
-Easy conversion between new-line conventions.
+Source code got polluted by `^M`'s ? Endlines smartly converts text files from and to the following line ending conventions : Unix/Apple (LF), Windows (CRLF) and legacy Apple (CR).
 
-    endlines unix -r an_imported_dir 
+    endlines unix * 
 
+- it doesn't need to know about the source files' convention. Multiple conventions can even be intermixed within a single file.
+- it attempts to detect binary files and skips them by default ; this can be overriden of course.
+- it offers a straightforward syntax for multiple files and can recurse into directories, excluding or including hidden files and directories (you don't want to mess with your `.git`, do you ?)
+- UTF-8 files as well as all single byte encodings will be treated well. However, UCS-2 and UTF-16/32 are not supported.
+- it can preserve your files' timestamps.
+- I provide support for Linux, all BSDs and OSX. Any POSIX compliant system should be supported out of the box.
+- it may compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
 
-`endlines`'s advantages over `dos2unix` : 
-- it attempts to detect binary files and skips them by default ; this can be overriden with `-b`
-- it doesn't need to know about the source files' convention. Multiple conventions can even be intermixed within a single file (this may happen after patches/merges).
-- it offers a straightforward syntax for multiple files.
-- it can recurse into directories ; see `-r` option.
-- it works easily on OSX (yet works the same on Linux as well) 
-
-
-**Note about Unicode**
-UTF-8 is supported. UCS-2 and UTF-16/32 are not. 
-
-
-
-The help screen
----------------
+Let the help screen say it all :
 
      ------ Convert line endings  ------
 
