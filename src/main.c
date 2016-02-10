@@ -1,9 +1,20 @@
-/* This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+/*
+   This file is part of endlines' source code
 
-endlines : Mathias Dolidon / 2014-2015 */
+   Copyright 2014-2016 Mathias Dolidon
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 
 #include "endlines.h"
 #include "walkers.h"
@@ -92,6 +103,28 @@ display_help_and_quit() {
 }
 
 
+void
+display_version_and_quit() {
+    fprintf(stderr, "\n   * endlines version %s \n", VERSION);
+
+    fprintf(stderr, "   * Copyright 2014-2016 Mathias Dolidon\n\n");
+    
+    fprintf(stderr, "   Licensed under the Apache License, Version 2.0 (the \"License\");\n");
+    fprintf(stderr, "   you may not use this file except in compliance with the License.\n");
+    fprintf(stderr, "   You may obtain a copy of the License at\n\n");
+
+    fprintf(stderr, "       http://www.apache.org/licenses/LICENSE-2.0\n\n");
+
+    fprintf(stderr, "   Unless required by applicable law or agreed to in writing, software\n");
+    fprintf(stderr, "   distributed under the License is distributed on an \"AS IS\" BASIS,\n");
+    fprintf(stderr, "   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n");
+    fprintf(stderr, "   See the License for the specific language governing permissions and\n");
+    fprintf(stderr, "   limitations under the License.\n\n");
+
+    exit(0);
+}
+
+
 
 //
 // PARSING COMMAND LINE OPTIONS
@@ -130,8 +163,7 @@ parse_cmd_line_args(int argc, char** argv) {
         } else if(!strcmp(argv[i], "--help")) {
             display_help_and_quit();
         } else if(!strcmp(argv[i], "--version")) {
-            fprintf(stderr, "endlines version %s\n", VERSION);
-            exit(0);
+            display_version_and_quit();
         } else if(i==1) {
             cmd_line_args.convention = read_convention_from_string(argv[1]);
         } else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {

@@ -1,16 +1,19 @@
-Current version : **1.2**
+**Current version : 1.2**
+**License : Apache License 2.0**
 
-Source code got polluted by `^M`'s ? Endlines smartly converts text files from and to the following line ending conventions : Unix/Apple (LF), Windows (CRLF) and legacy Apple (CR).
+
+Did your source code get polluted by scattered `^M`'s ? 
+
+Endlines smartly converts text files from and to the following line ending conventions : Unix/Apple (LF), Windows (CRLF) and legacy Apple (CR).
 
     endlines unix * 
 
-- it doesn't need to know about the source files' convention. Multiple conventions can even be intermixed within a single file.
-- it attempts to detect binary files and skips them by default ; this can be overriden of course.
-- it offers a straightforward syntax for multiple files and can recurse into directories, excluding or including hidden files and directories (you don't want to mess with your `.git`, do you ?)
+- No need to know about the source files' convention. Multiple conventions can be mixed within a single file.
+- Straightforward syntax for multiple files and recursion into directories. Hidden files and directories can either be avoided or processed (you don't want to mess with your `.git`, do you ?)
+- Binary files will be detected and skipped by default. This can be overriden of course.
+- Files' last access and last modified time stamps can be preserved.
 - UTF-8 files as well as all single byte encodings will be treated well. However, UCS-2 and UTF-16/32 are not supported.
-- it can preserve your files' timestamps.
-- I provide support for Linux, all BSDs and OSX. Any POSIX compliant system should be supported out of the box.
-- it may compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
+
 
 Let the help screen say it all :
 
@@ -48,16 +51,9 @@ Apple OSX users may get the binary from the `apple_osx_binary` directory and sav
 Linux and other POSIX users just download the repository and type `sudo make install`. 
 
 
-Recent versions
----------------
+Operating systems
+-----------------
 
-**1.2** : fixed hidden files option
+I provide support for **Linux, all BSDs and OSX**. Any POSIX compliant system should be supported out of the box.
 
-**1.1** : preserves file permissions and ownership
-
-
-
-Developers
-----------
-
-The code is very simple. Just remember to run `make test` before you come out.
+Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
