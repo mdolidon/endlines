@@ -1,7 +1,5 @@
-**Current version : 1.2**
-
-**License : Apache License 2.0**
-
+| Version 1.2 | Apache License 2.0 |
+| ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
 
