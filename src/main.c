@@ -79,26 +79,27 @@ setup_conventions_display_names() {
 
 void
 display_help_and_quit() {
-    fprintf(stderr, "\n ------ Convert line endings  ------\n\n");
-    fprintf(stderr, " Use :\n   endlines OUT_CONVENTION [OPTIONS] [FILES]\n\n");
-    fprintf(stderr, "   Input conventions are determined automatically.\n   Each input file may possibly use multiple conventions. \n");
+    fprintf(stderr, "\n ------ Convert line endings  ------\n\n"
+                    " Use :\n   endlines OUT_CONVENTION [OPTIONS] [FILES]\n\n"
+                    "   Input conventions are determined automatically.\n"
+                    "   Each input file may possibly use multiple conventions. \n");
     fprintf(stderr, "   OUT_CONVENTION can be : ");
     for(int i=0; i<CL_NAMES_COUNT; ++i) {
         fprintf(stderr, "%s ", cl_names[i].name);
     }
-    fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n");
-    fprintf(stderr, " General options :\n");
-    fprintf(stderr, "   -q / --quiet    : silence all but the error messages.\n");
-    fprintf(stderr, "   -v / --verbose  : print more about what's going on.\n");
-    fprintf(stderr, "   --version       : print version number.\n\n");
-    fprintf(stderr, " File options :\n");
-    fprintf(stderr, "   -b / --binaries : don't skip binary files.\n");
-    fprintf(stderr, "   -k / --keepdate : keep files' last modified and last access time stamps.\n");
-    fprintf(stderr, "   -r / --recurse  : recurse into directories.\n");
-    fprintf(stderr, "   -h / --hidden   : process hidden files (/directories) too. \n\n");
-    fprintf(stderr, " Examples :\n");
-    fprintf(stderr, "   endlines unix *.txt\n");
-    fprintf(stderr, "   endlines win -k -r a_folder another_folder\n\n");
+    fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n"
+                    " General options :\n"
+                    "   -q / --quiet    : silence all but the error messages.\n"
+                    "   -v / --verbose  : print more about what's going on.\n"
+                    "   --version       : print version number.\n\n"
+                    " File options :\n"
+                    "   -b / --binaries : don't skip binary files.\n"
+                    "   -k / --keepdate : keep files' last modified and last access time stamps.\n"
+                    "   -r / --recurse  : recurse into directories.\n"
+                    "   -h / --hidden   : process hidden files (/directories) too. \n\n"
+                    " Examples :\n"
+                    "   endlines unix *.txt\n"
+                    "   endlines win -k -r a_folder another_folder\n\n");
     exit(1);
 }
 
@@ -107,19 +108,19 @@ void
 display_version_and_quit() {
     fprintf(stderr, "\n   * endlines version %s \n", VERSION);
 
-    fprintf(stderr, "   * Copyright 2014-2016 Mathias Dolidon\n\n");
+    fprintf(stderr, "   * Copyright 2014-2016 Mathias Dolidon\n\n"
     
-    fprintf(stderr, "   Licensed under the Apache License, Version 2.0 (the \"License\");\n");
-    fprintf(stderr, "   you may not use this file except in compliance with the License.\n");
-    fprintf(stderr, "   You may obtain a copy of the License at\n\n");
+                    "   Licensed under the Apache License, Version 2.0 (the \"License\"\n"
+                    "   you may not use this file except in compliance with the License.\n"
+                    "   You may obtain a copy of the License at\n\n"
 
-    fprintf(stderr, "       http://www.apache.org/licenses/LICENSE-2.0\n\n");
+                    "       http://www.apache.org/licenses/LICENSE-2.0\n\n"
 
-    fprintf(stderr, "   Unless required by applicable law or agreed to in writing, software\n");
-    fprintf(stderr, "   distributed under the License is distributed on an \"AS IS\" BASIS,\n");
-    fprintf(stderr, "   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n");
-    fprintf(stderr, "   See the License for the specific language governing permissions and\n");
-    fprintf(stderr, "   limitations under the License.\n\n");
+                    "   Unless required by applicable law or agreed to in writing, software\n"
+                    "   distributed under the License is distributed on an \"AS IS\" BASIS,\n"
+                    "   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
+                    "   See the License for the specific language governing permissions and\n"
+                    "   limitations under the License.\n\n");
 
     exit(0);
 }
