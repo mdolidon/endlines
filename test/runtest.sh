@@ -163,7 +163,7 @@ fi
 
 echo "" | ../endlines dunnothis 2>unknowntest >/dev/null
 UNKNOWN=`cat unknowntest`
-if [[ $UNKNOWN == *"unknown line end"* ]]
+if [[ $UNKNOWN == *"unknown action"* ]]
 then
       echo "OK : reacts to an unknown convention"
 else

@@ -1,4 +1,4 @@
-| Version 1.2 | Apache License 2.0 |
+| Version 1.3 | Apache License 2.0 |
 | ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -16,31 +16,34 @@ Endlines smartly converts text files from and to the following line ending conve
 
 Let the help screen say it all :
 
-     ------ Convert line endings  ------
 
-     Use :
-       endlines OUT_CONVENTION [OPTIONS] [FILES]
-
-       Input conventions are determined automatically.
-       Each input file may possibly use multiple conventions. 
-       OUT_CONVENTION can be : lf unix linux osx crlf win windows dos cr oldmac 
+        endlines ACTION [OPTIONS] [FILES]
+     
        If no files are specified, endlines converts from stdin to stdout.
+       ACTION can be :
+         check                   : perform a dry run to check current conventions
+         lf, unix, linux, osx    : convert all endings to LF
+         crlf, windows, win, dos : convert all endings to CR-LF
+         cr, oldmac              : convert all endings to CR
+     
+       General options :
+         -q / --quiet    : silence all but the error messages.
+         -v / --verbose  : print more about what's going on.
+         --version       : print version number.
+     
+       File options :
+         -b / --binaries : don't skip binary files.
+         -k / --keepdate : keep files' last modified and last access time stamps.
+         -r / --recurse  : recurse into directories.
+         -h / --hidden   : process hidden files (/directories) too. 
+     
+       Examples :
+         endlines check *.txt
+         endlines linux -k -r a_folder another_folder
 
-     General options :
-       -q / --quiet    : silence all but the error messages.
-       -v / --verbose  : print more about what's going on.
-       --version       : print version number.
-
-     File options :
-       -b / --binaries : don't skip binary files.
-       -k / --keepdate : keep files' last modified and last access time stamps.
-       -r / --recurse  : recurse into directories.
-       -h / --hidden   : process hidden files (/directories) too. 
-
-     Examples :
-       endlines unix *.txt
-       endlines win -k -r a_folder another_folder
-
+New in version 1.3 :
+- endline reports on the source files' conventions it found
+- check mode allows you to perform a dry run
 
 Install
 -------

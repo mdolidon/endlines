@@ -60,29 +60,35 @@ setup_output_buffered_stream(Buffered_stream* b, FILE* stream) {
 
 static inline void
 flush_buffer(Buffered_stream* b) {
-    fwrite(b->buffer, 1, b->buf_ptr, b->stream);
-    b->buf_ptr = 0;
+    if(b->stream) {
+        fwrite(b->buffer, 1, b->buf_ptr, b->stream);
+        b->buf_ptr = 0;
+    }
 }
 
 static inline void
 push_byte(BYTE value, Buffered_stream* b) {
-    b->buffer[b->buf_ptr] = value;
-    ++ b->buf_ptr;
-    if(b->buf_ptr == b->buf_size) {
-        flush_buffer(b);
+    if(b->stream) {
+        b->buffer[b->buf_ptr] = value;
+        ++ b->buf_ptr;
+        if(b->buf_ptr == b->buf_size) {
+            flush_buffer(b);
+        }
     }
 }
 
 static inline void
 push_newline(Convention convention, Buffered_stream* b) {
     switch(convention) {
-        case CR: push_byte(13, b);
+        case CR:   push_byte(13, b);
                  break;
-        case LF: push_byte(10, b);
+        case LF:   push_byte(10, b);
                  break;
         case CRLF: push_byte(13, b);
                    push_byte(10, b);
-                   break;
+                 break;
+        default:
+                 break;
     }
 }
 
@@ -125,7 +131,13 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     setup_input_buffered_stream(&input_stream, p_instream);
     setup_output_buffered_stream(&output_stream, p_outstream);
 
-    Report report = {.lines=0, .contains_control_chars=false};
+    Report report;
+    report.lines=0; 
+    report.contains_control_chars=false;
+    int i;
+    for(i=0; i<KNOWN_CONVENTIONS_COUNT; i++) {
+        report.count_by_convention[i] = 0;
+    }
 
     BYTE byte;
     bool last_was_13 = false;
@@ -141,11 +153,16 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
         if(byte == 13) {
             report.lines ++;
             push_newline(convention, &output_stream);
+            ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(byte == 10) {
             if(!last_was_13) {
                 report.lines ++;
                 push_newline(convention, &output_stream);
+                ++ report.count_by_convention[LF];
+            } else {
+                -- report.count_by_convention[CR];
+                ++ report.count_by_convention[CRLF];
             }
             last_was_13 = false;
         } else {

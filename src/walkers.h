@@ -22,7 +22,7 @@
 
 // There's no clean cross-platform way to be sure about the program name,
 // so I chose to uncleanly set it here.
-#define PROGNAME "endlines"
+#define WALKERS_PROGNAME "endlines"
 
 #define WALKERS_MAX_PATH_LENGTH 1025
 

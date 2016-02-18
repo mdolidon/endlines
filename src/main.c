@@ -19,7 +19,6 @@
 #include "endlines.h"
 #include "walkers.h"
 
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <utime.h>
@@ -37,8 +36,9 @@ typedef struct {
     Convention convention;
 } cmd_line_args_to_convention;
 
-#define CL_NAMES_COUNT 10
+#define CL_NAMES_COUNT 11
 const cmd_line_args_to_convention cl_names[CL_NAMES_COUNT] = {
+    {.name="check",   .convention=NO_CONVENTION},
     {.name="lf",      .convention=LF},
     {.name="unix",    .convention=LF},
     {.name="linux",   .convention=LF},
@@ -58,20 +58,29 @@ read_convention_from_string(char * name) {
             return cl_names[i].convention;
         }
     }
-    fprintf(stderr, "endlines : unknown line end convention : %s\n", name);
+    fprintf(stderr, "endlines : unknown action : %s\n", name);
     exit(8);
 }
 
 const char* convention_display_names[KNOWN_CONVENTIONS_COUNT];
-
+const char* convention_short_display_names[KNOWN_CONVENTIONS_COUNT];
 void
 setup_conventions_display_names() {
+    convention_display_names[NO_CONVENTION] = "No line ending";
+    convention_short_display_names[NO_CONVENTION] = "None";
+
     convention_display_names[CR] = "Legacy Mac (CR)";
+    convention_short_display_names[CR] = "CR";
+
     convention_display_names[LF] = "Unix (LF)";
+    convention_short_display_names[LF] = "LF";
+
     convention_display_names[CRLF] = "Windows (CR-LF)";
+    convention_short_display_names[CRLF] = "CR-LF";
+
+    convention_display_names[MIXED] = "Mixed endings";
+    convention_short_display_names[MIXED] = "Mixed";
 }
-
-
 
 //
 // THE HELP SCREEN
@@ -79,27 +88,29 @@ setup_conventions_display_names() {
 
 void
 display_help_and_quit() {
-    fprintf(stderr, "\n ------ Convert line endings  ------\n\n"
-                    " Use :\n   endlines OUT_CONVENTION [OPTIONS] [FILES]\n\n"
-                    "   Input conventions are determined automatically.\n"
-                    "   Each input file may possibly use multiple conventions. \n");
-    fprintf(stderr, "   OUT_CONVENTION can be : ");
-    for(int i=0; i<CL_NAMES_COUNT; ++i) {
-        fprintf(stderr, "%s ", cl_names[i].name);
-    }
-    fprintf(stderr, "\n   If no files are specified, endlines converts from stdin to stdout.\n\n"
-                    " General options :\n"
-                    "   -q / --quiet    : silence all but the error messages.\n"
-                    "   -v / --verbose  : print more about what's going on.\n"
-                    "   --version       : print version number.\n\n"
-                    " File options :\n"
-                    "   -b / --binaries : don't skip binary files.\n"
-                    "   -k / --keepdate : keep files' last modified and last access time stamps.\n"
-                    "   -r / --recurse  : recurse into directories.\n"
-                    "   -h / --hidden   : process hidden files (/directories) too. \n\n"
-                    " Examples :\n"
-                    "   endlines unix *.txt\n"
-                    "   endlines win -k -r a_folder another_folder\n\n");
+    fprintf(stderr, "\n"
+                    "  endlines ACTION [OPTIONS] [FILES]\n\n"
+
+                    "  If no files are specified, endlines converts from stdin to stdout.\n"
+                    "  ACTION can be :\n"
+                    "    check                   : perform a dry run to check current conventions\n"
+                    "    lf, unix, linux, osx    : convert all endings to LF\n"
+                    "    crlf, windows, win, dos : convert all endings to CR-LF\n"
+                    "    cr, oldmac              : convert all endings to CR\n\n"
+
+                    "  General options :\n"
+                    "    -q / --quiet    : silence all but the error messages.\n"
+                    "    -v / --verbose  : print more about what's going on.\n"
+                    "    --version       : print version number.\n\n"
+                    "  File options :\n"
+                    "    -b / --binaries : don't skip binary files.\n"
+                    "    -k / --keepdate : keep files' last modified and last access time stamps.\n"
+                    "    -r / --recurse  : recurse into directories.\n"
+                    "    -h / --hidden   : process hidden files (/directories) too. \n\n"
+
+                    "  Examples :\n"
+                    "    endlines check *.txt\n"
+                    "    endlines linux -k -r a_folder another_folder\n\n");
     exit(1);
 }
 
@@ -155,8 +166,7 @@ parse_cmd_line_args(int argc, char** argv) {
         exit(1);
     }
 
-    int i;
-    for(i=1; i<argc; ++i) {
+    for(int i=1; i<argc; ++i) {
         if(i>1 && argv[i][0] != '-') {
             cmd_line_args.filenames[cmd_line_args.file_count] = argv[i];
             ++ cmd_line_args.file_count;
@@ -190,8 +200,13 @@ parse_cmd_line_args(int argc, char** argv) {
 
 
 //
-// CONVERTING ONE FILE
 //
+// CONVERTING OR CHECKING ONE FILE
+//
+//
+
+
+// Helpers
 
 #define PROCESSING_STATUSES_COUNT 4
 typedef enum {
@@ -241,6 +256,16 @@ open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
 }
 
 processing_status
+open_input_file_for_dry_run(FILE** in, char* in_filename) {
+    *in = fopen(in_filename, "rb");
+    if(*in == NULL) {
+        fprintf(stderr, "endlines : can not read %s\n", in_filename);
+        return SKIPPED_ERROR;
+    }
+    return CAN_CONTINUE;
+}
+
+processing_status
 move_temp_file_to_destination(char* filename, struct stat *statinfo) {
     int err = remove(filename);
     if(err) {
@@ -262,11 +287,19 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
 }
 
 
+// Main conversion (resp. checking) handlers
+
 #define TRY partial_status =
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
 processing_status
-convert_one_file(char* filename, CommandLine* cmd_line_args) {
+convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
+    if(cmd_line_args->convention == NO_CONVENTION || cmd_line_args->convention == MIXED) {
+        fprintf(stderr, "endlines : BUG ; a special convention leaked to convert_one_file.\n"
+                        "    Please report an issue to https://github.com/mdolidon/endlines\n"
+                        "    The program will now terminate to avoid any unwanted file modifcations.\n\n");
+        exit(16);
+    }
     struct stat statinfo;
     processing_status partial_status;
     FILE *in  = NULL;
@@ -277,6 +310,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args) {
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
     Report report = convert(in, out, cmd_line_args->convention);
+    memcpy(file_report, &report, sizeof(Report));
 
     fclose(in);
     fclose(out);
@@ -294,6 +328,24 @@ convert_one_file(char* filename, CommandLine* cmd_line_args) {
     return DONE;
 }
 
+
+processing_status
+check_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
+    processing_status partial_status;
+    FILE *in  = NULL;
+    TRY open_input_file_for_dry_run(&in, filename); CATCH
+
+    Report report = convert(in, NULL, NO_CONVENTION);
+    memcpy(file_report, &report, sizeof(Report));
+
+    fclose(in);
+    if(report.contains_control_chars && !cmd_line_args->binaries) {
+        return SKIPPED_BINARY;
+    }
+
+    return DONE;
+}
+
 #undef TRY
 #undef CATCH
 
@@ -302,41 +354,73 @@ convert_one_file(char* filename, CommandLine* cmd_line_args) {
 //
 // HANDLING A CONVERSION BATCH
 //
-// First the helpers...
+// First the helpers again
 //
 
 typedef struct {
-    int totals[PROCESSING_STATUSES_COUNT];
+    int outcome_totals[PROCESSING_STATUSES_COUNT];
+    int convention_totals[KNOWN_CONVENTIONS_COUNT];
     CommandLine* cmd_line_args;
 } Accumulator;
 
 
+Convention
+get_source_convention(Report* file_report) {
+    Convention c = NO_CONVENTION;
+    for(int i=0; i<KNOWN_CONVENTIONS_COUNT; i++) {
+        if(file_report->count_by_convention[i] > 0) {
+            if(c == NO_CONVENTION) {
+                c = (Convention)i;
+            } else {
+                c = MIXED;
+            }
+        }
+    }
+    return c;
+}
+
 void
-print_verbose_file_outcome(char * filename, processing_status outcome) {
+print_verbose_file_outcome(char * filename, processing_status outcome, Convention source_convention) {
     switch(outcome) {
-        case DONE: fprintf(stderr, "endlines : converted %s\n", filename);
+        case DONE:
+            fprintf(stderr, "endlines : %s -- %s\n",
+                    convention_short_display_names[source_convention], filename);
             break;
-        case SKIPPED_BINARY: fprintf(stderr, "endlines : skipped probable binary %s\n", filename);
+        case SKIPPED_BINARY: 
+            fprintf(stderr, "endlines : skipped probable binary %s\n", filename);
             break;
         default: break;
     }
 }
 
 void
-print_totals(int done, int directories, int binaries, int hidden, int errors) {
-        fprintf(stderr,     "endlines : %i file%s converted\n", done, done>1?"s":"");
-        if(directories) {
-            fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
+print_outcome_totals(bool dry_run,
+                     int* count_by_convention, int done, int directories,
+                     int binaries, int hidden, int errors) {
+    fprintf(stderr,  "\nendlines : %i file%s %s", done, done>1?"s":"", dry_run?"checked":"converted");
+    if(done) {
+        fprintf(stderr, " %s :\n", dry_run?"; found":"from");
+        for(int i=0; i<KNOWN_CONVENTIONS_COUNT; ++i) {
+            if(count_by_convention[i]) {
+                fprintf(stderr, "              - %i %s\n",  count_by_convention[i], convention_display_names[i]);
+            }
         }
-        if(binaries) {
-            fprintf(stderr, "           %i binar%s skipped\n", binaries, binaries>1?"ies":"y");
-        }
-        if(hidden) {
-            fprintf(stderr, "           %i hidden file%s skipped\n", hidden, hidden>1?"s":"");
-        }
-        if(errors) {
-            fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
-        }
+    } else {
+        fprintf(stderr, "\n");
+    }
+
+    if(directories) {
+        fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
+    }
+    if(binaries) {
+        fprintf(stderr, "           %i binar%s skipped\n", binaries, binaries>1?"ies":"y");
+    }
+    if(hidden) {
+        fprintf(stderr, "           %i hidden file%s skipped\n", hidden, hidden>1?"s":"");
+    }
+    if(errors) {
+        fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
+    }
 }
 
 //
@@ -345,11 +429,24 @@ print_totals(int done, int directories, int binaries, int hidden, int errors) {
 
 void
 walkers_callback(char* filename, void* p_accumulator) {
+    processing_status outcome;
+    Report file_report;
+    Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
-    processing_status outcome = convert_one_file(filename, accumulator->cmd_line_args);
-    ++ accumulator->totals[outcome];
+
+    if(accumulator->cmd_line_args->convention == NO_CONVENTION) {
+        outcome = check_one_file(filename, accumulator->cmd_line_args, &file_report);
+    } else {
+        outcome = convert_one_file(filename, accumulator->cmd_line_args, &file_report);
+    }
+
+    source_convention = get_source_convention(&file_report);
+    ++ accumulator->outcome_totals[outcome];
+    if(outcome == DONE) {
+        ++ accumulator->convention_totals[source_convention];
+    }
     if(accumulator->cmd_line_args->verbose) {
-        print_verbose_file_outcome(filename, outcome);
+        print_verbose_file_outcome(filename, outcome, source_convention);
     }
 }
 
@@ -358,7 +455,10 @@ void
 convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
     Accumulator accumulator;
     for(int i=0; i<PROCESSING_STATUSES_COUNT; ++i) {
-        accumulator.totals[i] = 0;
+        accumulator.outcome_totals[i] = 0;
+    }
+    for(int i=0; i<KNOWN_CONVENTIONS_COUNT; ++i) {
+        accumulator.convention_totals[i] = 0;
     }
     accumulator.cmd_line_args = cmd_line_args;
 
@@ -370,17 +470,23 @@ convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
     tracker.skip_hidden = !cmd_line_args->process_hidden;
 
     if(!cmd_line_args->quiet) {
-        fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[cmd_line_args->convention]);
+        if(cmd_line_args->convention == NO_CONVENTION) {
+            fprintf(stderr, "endlines : dry run, scanning files\n");
+        } else {
+            fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[cmd_line_args->convention]);
+        }
     }
 
     walk_filenames(cmd_line_args->filenames, cmd_line_args->file_count, &tracker);
 
     if(!cmd_line_args->quiet) {
-        print_totals(accumulator.totals[DONE],
-                     tracker.skipped_directories_count,
-                     accumulator.totals[SKIPPED_BINARY],
-                     tracker.skipped_hidden_files_count,
-                     accumulator.totals[SKIPPED_ERROR] + tracker.read_errors_count
+        print_outcome_totals(cmd_line_args->convention == NO_CONVENTION,
+                             accumulator.convention_totals,
+                             accumulator.outcome_totals[DONE],
+                             tracker.skipped_directories_count,
+                             accumulator.outcome_totals[SKIPPED_BINARY],
+                             tracker.skipped_hidden_files_count,
+                             accumulator.outcome_totals[SKIPPED_ERROR] + tracker.read_errors_count
         );
     }
 }
@@ -404,7 +510,11 @@ main(int argc, char**argv) {
         convert_files(argc, argv, &cmd_line_args);
     } else {
         if(!cmd_line_args.quiet) {
-            fprintf(stderr, "Converting stdin to %s\n", convention_display_names[cmd_line_args.convention]);
+            if(cmd_line_args.convention == NO_CONVENTION) {
+                fprintf(stderr, "endlines : dry run, scanning standard input\n");
+            } else {
+                fprintf(stderr, "Converting standard input to %s\n", convention_display_names[cmd_line_args.convention]);
+            }
         }
         convert(stdin, stdout, cmd_line_args.convention);
     }

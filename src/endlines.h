@@ -26,7 +26,7 @@
 // one of these three values.
 
 
-#define VERSION "1.2"
+#define VERSION "1.3"
 #define BUFFERSIZE 15000
 #define TMP_FILENAME ".tmp_endlines"
 
@@ -42,6 +42,7 @@
 // - function definitions
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stdio.h>     // for FILE type, if nothing else
 
 #ifndef BYTE
@@ -53,11 +54,13 @@
 // Define the enum values here.
 // Define display names and command-line names in main.c
 // Define binary reality in engine.c
-#define KNOWN_CONVENTIONS_COUNT 3
+#define KNOWN_CONVENTIONS_COUNT 5
 typedef enum {
+    NO_CONVENTION,
     CR,
     LF,
-    CRLF
+    CRLF,
+    MIXED
 } Convention;
 
 
@@ -65,6 +68,7 @@ typedef enum {
 typedef struct {
     int lines;
     bool contains_control_chars;
+    int count_by_convention[KNOWN_CONVENTIONS_COUNT];
 } Report;
 
 
