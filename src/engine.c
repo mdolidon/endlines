@@ -124,6 +124,14 @@ is_control_char(BYTE byte) {
 
 // MAIN CONVERSION LOOP
 
+void
+init_report(Report* report) {
+    report->contains_control_chars=false;
+    for(int i=0; i<CONVENTIONS_COUNT; i++) {
+        report->count_by_convention[i] = 0;
+    }
+}
+
 Report
 convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     Buffered_stream input_stream;
@@ -132,12 +140,7 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     setup_output_buffered_stream(&output_stream, p_outstream);
 
     Report report;
-    report.lines=0; 
-    report.contains_control_chars=false;
-    int i;
-    for(i=0; i<KNOWN_CONVENTIONS_COUNT; i++) {
-        report.count_by_convention[i] = 0;
-    }
+    init_report(&report);
 
     BYTE byte;
     bool last_was_13 = false;
@@ -151,13 +154,11 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
             report.contains_control_chars = true;
         }
         if(byte == 13) {
-            report.lines ++;
             push_newline(convention, &output_stream);
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(byte == 10) {
             if(!last_was_13) {
-                report.lines ++;
                 push_newline(convention, &output_stream);
                 ++ report.count_by_convention[LF];
             } else {

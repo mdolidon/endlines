@@ -54,7 +54,7 @@
 // Define the enum values here.
 // Define display names and command-line names in main.c
 // Define binary reality in engine.c
-#define KNOWN_CONVENTIONS_COUNT 5
+#define CONVENTIONS_COUNT 5
 typedef enum {
     NO_CONVENTION,
     CR,
@@ -66,9 +66,8 @@ typedef enum {
 
 // Reports from the conversion function to the caller
 typedef struct {
-    int lines;
     bool contains_control_chars;
-    int count_by_convention[KNOWN_CONVENTIONS_COUNT];
+    int count_by_convention[CONVENTIONS_COUNT];
 } Report;
 
 

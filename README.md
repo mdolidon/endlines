@@ -17,14 +17,14 @@ Endlines smartly converts text files from and to the following line ending conve
 Let the help screen say it all :
 
 
-        endlines ACTION [OPTIONS] [FILES]
+       endlines ACTION [OPTIONS] [FILES]
      
        If no files are specified, endlines converts from stdin to stdout.
        ACTION can be :
-         check                   : perform a dry run to check current conventions
          lf, unix, linux, osx    : convert all endings to LF
          crlf, windows, win, dos : convert all endings to CR-LF
          cr, oldmac              : convert all endings to CR
+         check                   : perform a dry run to check current conventions
      
        General options :
          -q / --quiet    : silence all but the error messages.
@@ -42,8 +42,8 @@ Let the help screen say it all :
          endlines linux -k -r a_folder another_folder
 
 New in version 1.3 :
-- endline reports on the source files' conventions it found
-- check mode allows you to perform a dry run
+- Endlines reports on the original conventions it found
+- `check` mode allows you to perform a dry run
 
 Install
 -------

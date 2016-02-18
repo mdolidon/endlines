@@ -62,8 +62,8 @@ read_convention_from_string(char * name) {
     exit(8);
 }
 
-const char* convention_display_names[KNOWN_CONVENTIONS_COUNT];
-const char* convention_short_display_names[KNOWN_CONVENTIONS_COUNT];
+const char* convention_display_names[CONVENTIONS_COUNT];
+const char* convention_short_display_names[CONVENTIONS_COUNT];
 void
 setup_conventions_display_names() {
     convention_display_names[NO_CONVENTION] = "No line ending";
@@ -76,7 +76,7 @@ setup_conventions_display_names() {
     convention_short_display_names[LF] = "LF";
 
     convention_display_names[CRLF] = "Windows (CR-LF)";
-    convention_short_display_names[CRLF] = "CR-LF";
+    convention_short_display_names[CRLF] = "CRLF";
 
     convention_display_names[MIXED] = "Mixed endings";
     convention_short_display_names[MIXED] = "Mixed";
@@ -93,10 +93,10 @@ display_help_and_quit() {
 
                     "  If no files are specified, endlines converts from stdin to stdout.\n"
                     "  ACTION can be :\n"
-                    "    check                   : perform a dry run to check current conventions\n"
                     "    lf, unix, linux, osx    : convert all endings to LF\n"
                     "    crlf, windows, win, dos : convert all endings to CR-LF\n"
-                    "    cr, oldmac              : convert all endings to CR\n\n"
+                    "    cr, oldmac              : convert all endings to CR\n"
+                    "    check                   : perform a dry run to check current conventions\n\n"
 
                     "  General options :\n"
                     "    -q / --quiet    : silence all but the error messages.\n"
@@ -208,16 +208,16 @@ parse_cmd_line_args(int argc, char** argv) {
 
 // Helpers
 
-#define PROCESSING_STATUSES_COUNT 4
+#define OUTCOMES_COUNT 4
 typedef enum {
     CAN_CONTINUE,
     DONE,
     SKIPPED_BINARY,
     SKIPPED_ERROR,
-} processing_status;
+} Outcome;
 
 
-processing_status
+Outcome
 get_file_stats(char* filename, struct stat* statinfo) {
     if(stat(filename, statinfo)) {
         fprintf(stderr, "endlines : can not read %s\n", filename);
@@ -234,7 +234,7 @@ get_file_times(struct stat* statinfo) {
     return file_times;
 }
 
-processing_status
+Outcome
 open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
@@ -255,7 +255,7 @@ open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
     return CAN_CONTINUE;
 }
 
-processing_status
+Outcome
 open_input_file_for_dry_run(FILE** in, char* in_filename) {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
@@ -265,7 +265,7 @@ open_input_file_for_dry_run(FILE** in, char* in_filename) {
     return CAN_CONTINUE;
 }
 
-processing_status
+Outcome
 move_temp_file_to_destination(char* filename, struct stat *statinfo) {
     int err = remove(filename);
     if(err) {
@@ -292,16 +292,16 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
 #define TRY partial_status =
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
-processing_status
+Outcome
 convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
-    if(cmd_line_args->convention == NO_CONVENTION || cmd_line_args->convention == MIXED) {
+    if(cmd_line_args->convention <= NO_CONVENTION || cmd_line_args->convention >= MIXED) {
         fprintf(stderr, "endlines : BUG ; a special convention leaked to convert_one_file.\n"
                         "    Please report an issue to https://github.com/mdolidon/endlines\n"
                         "    The program will now terminate to avoid any unwanted file modifcations.\n\n");
         exit(16);
     }
     struct stat statinfo;
-    processing_status partial_status;
+    Outcome partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
 
@@ -329,9 +329,9 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report
 }
 
 
-processing_status
+Outcome
 check_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
-    processing_status partial_status;
+    Outcome partial_status;
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
 
@@ -358,8 +358,8 @@ check_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) 
 //
 
 typedef struct {
-    int outcome_totals[PROCESSING_STATUSES_COUNT];
-    int convention_totals[KNOWN_CONVENTIONS_COUNT];
+    int outcome_totals[OUTCOMES_COUNT];
+    int convention_totals[CONVENTIONS_COUNT];
     CommandLine* cmd_line_args;
 } Accumulator;
 
@@ -367,7 +367,7 @@ typedef struct {
 Convention
 get_source_convention(Report* file_report) {
     Convention c = NO_CONVENTION;
-    for(int i=0; i<KNOWN_CONVENTIONS_COUNT; i++) {
+    for(int i=0; i<CONVENTIONS_COUNT; i++) {
         if(file_report->count_by_convention[i] > 0) {
             if(c == NO_CONVENTION) {
                 c = (Convention)i;
@@ -380,7 +380,7 @@ get_source_convention(Report* file_report) {
 }
 
 void
-print_verbose_file_outcome(char * filename, processing_status outcome, Convention source_convention) {
+print_verbose_file_outcome(char * filename, Outcome outcome, Convention source_convention) {
     switch(outcome) {
         case DONE:
             fprintf(stderr, "endlines : %s -- %s\n",
@@ -400,7 +400,7 @@ print_outcome_totals(bool dry_run,
     fprintf(stderr,  "\nendlines : %i file%s %s", done, done>1?"s":"", dry_run?"checked":"converted");
     if(done) {
         fprintf(stderr, " %s :\n", dry_run?"; found":"from");
-        for(int i=0; i<KNOWN_CONVENTIONS_COUNT; ++i) {
+        for(int i=0; i<CONVENTIONS_COUNT; ++i) {
             if(count_by_convention[i]) {
                 fprintf(stderr, "              - %i %s\n",  count_by_convention[i], convention_display_names[i]);
             }
@@ -429,7 +429,7 @@ print_outcome_totals(bool dry_run,
 
 void
 walkers_callback(char* filename, void* p_accumulator) {
-    processing_status outcome;
+    Outcome outcome;
     Report file_report;
     Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
@@ -454,10 +454,10 @@ walkers_callback(char* filename, void* p_accumulator) {
 void
 convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
     Accumulator accumulator;
-    for(int i=0; i<PROCESSING_STATUSES_COUNT; ++i) {
+    for(int i=0; i<OUTCOMES_COUNT; ++i) {
         accumulator.outcome_totals[i] = 0;
     }
-    for(int i=0; i<KNOWN_CONVENTIONS_COUNT; ++i) {
+    for(int i=0; i<CONVENTIONS_COUNT; ++i) {
         accumulator.convention_totals[i] = 0;
     }
     accumulator.cmd_line_args = cmd_line_args;
