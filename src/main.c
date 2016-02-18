@@ -421,6 +421,7 @@ print_outcome_totals(bool dry_run,
     if(errors) {
         fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
     }
+    fprintf(stderr, "\n");
 }
 
 //
