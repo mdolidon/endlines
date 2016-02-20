@@ -18,6 +18,7 @@
 
 #include "endlines.h"
 #include "walkers.h"
+#include "known_binary_extensions.h"
 
 #include <string.h>
 #include <sys/stat.h>
@@ -237,8 +238,6 @@ parse_cmd_line_args(int argc, char** argv) {
 
 // =============== CONVERTING OR CHECKING ONE FILE ===============
 
-
-
 Outcome
 get_file_stats(char* filename, struct stat* statinfo) {
     if(stat(filename, statinfo)) {
@@ -320,51 +319,6 @@ get_file_extension(char* name) {
         return extension+1;
     }
 }
-
-// Only the extensions we're most likely to encounter inside the
-// kind of project that also host a lot of text data : source code,
-// web project etc.
-#define KNOWN_BINARY_EXTENSIONS_COUNT 134
-char 
-*known_binary_file_extensions[] = {
-    // images
-    "jpg", "jpeg", "tif", "tiff", "gif", 
-    "png", "tga", "bmp", "xcf", "raw", "pdf",
-    "jfif",
-    "JPG", "JPEG", "TIF", "TIFF", "GIF", 
-    "PNG", "TGA", "BMP", "XCF", "RAW", "PDF",
-    "JFIF",
-
-    // sound
-    "mp3", "flac", "3ga", "m4a", "wav", "aiff", "wma",
-    "au", "ogg", "mid",
-    "MP3", "FLAC", "3GA", "M4A", "WAV", "AIFF", "WMA",
-    "AU", "OGG", "MID",
-
-    // database
-    "db", "fdb", "accdb", "gdb", "mdb", "wdb", "sqlite",
-    "sqlite3", "db3", "dbf", "myd", "sdf",
-    "s3db", "sdb", "odb", "t2d",
-    "DB", "FDB", "ACCDB", "GDB", "MDB", "WDB", "SQLITE",
-    "SQLITE3", "DB3", "DBF", "MYD", "SDF",
-    "S3DB", "SDB", "ODB", "T2D",
-
-    // office
-    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pub", "pubx",
-    "dotx", "odt", "sxw", "odp", "sxi", "stw", "sdd",
-    "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "PUB", "PUBX",
-    "DOTX", "ODT", "SXW", "ODP", "SXI", "STW", "SDD",
-
-    // archive
-    "jar", "7z", "tgz", "gz", "tar", "zip", "dmg",
-    "zlib", "pkg", "bz2", "iso",
-    "JAR", "7Z", "TGZ", "GZ", "TAR", "ZIP", "DMG",
-    "ZLIB", "PKG", "BZ2", "ISO",
-
-    // executable / object
-    "class", "o", "exe",
-    "CLASS", "O", "EXE"
-};
 
 bool
 has_known_binary_file_extension(char* filename) {
