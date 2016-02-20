@@ -69,5 +69,19 @@ New in version 1.3 :
 - Endlines reports on the original conventions it found
 - `check` mode allows you to perform a dry run
 
+
+    $ endlines check -r .
+    endlines : dry run, scanning files
+
+    endlines : 6431 files checked ; found :
+                  - 142 No line ending
+                  - 1 Legacy Mac (CR)
+                  - 6250 Unix (LF)
+                  - 37 Windows (CR-LF)
+                  - 1 Mixed endings
+               2403 binaries skipped
+               480 hidden files skipped
+
+
 Version 1.2 :
 - earliest version without any known bug
