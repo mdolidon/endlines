@@ -57,6 +57,11 @@ setup_output_buffered_stream(Buffered_stream* b, FILE* stream) {
 
 
 // MANAGING AN OUTPUT BUFFER
+// Pushing and flushing check the presence of an actual stream
+// b->stream is allowed to contain a null-pointer ; this is used when
+// checking files, and lets the loop be written only once.
+// Speed gains made by writing down one version for checking and
+// another one for converting would be insignificant.
 
 static inline void
 flush_buffer(Buffered_stream* b) {
@@ -116,7 +121,7 @@ pull_byte(Buffered_stream* b) {
 // LOOKING OUT FOR BINARY DATA IN A STREAM
 
 static inline bool
-is_control_char(BYTE byte) {
+is_non_text_char(BYTE byte) {
     return (byte <= 8 || (byte <= 31 && byte >= 14));
 }
 
@@ -125,21 +130,21 @@ is_control_char(BYTE byte) {
 // MAIN CONVERSION LOOP
 
 void
-init_report(Report* report) {
-    report->contains_control_chars=false;
+init_report(FileReport* report) {
+    report->contains_non_text_chars=false;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
         report->count_by_convention[i] = 0;
     }
 }
 
-Report
+FileReport
 convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
     Buffered_stream input_stream;
     Buffered_stream output_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
     setup_output_buffered_stream(&output_stream, p_outstream);
 
-    Report report;
+    FileReport report;
     init_report(&report);
 
     BYTE byte;
@@ -150,8 +155,8 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
         if(input_stream.eof) {
             break;
         }
-        if(is_control_char(byte)) {
-            report.contains_control_chars = true;
+        if(is_non_text_char(byte)) {
+            report.contains_non_text_chars = true;
         }
         if(byte == 13) {
             push_newline(convention, &output_stream);

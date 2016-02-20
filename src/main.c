@@ -25,19 +25,63 @@
 #include <unistd.h>
 
 
+ 
 
+// =============== LOCAL TYPES  =============== 
 
-//
-// ALL ABOUT CONVENTION NAMES
-//
+// Match a convention name as given on the command line to
+// the Convention enum type, defined in endlines.h
 
 typedef struct {
     char name[10];
     Convention convention;
 } cmd_line_args_to_convention;
 
+
+// Holds all command line parameters
+
+typedef struct {
+    Convention convention;
+    bool quiet;
+    bool verbose;
+    bool binaries;
+    bool keepdate;
+    bool recurse;
+    bool process_hidden;
+    char** filenames;
+    int file_count;
+} CommandLine;
+
+
+// Possible outcomes for each file processed 
+
+#define OUTCOMES_COUNT 4
+typedef enum {
+    CAN_CONTINUE,  // intermediate state : no error yet, but processing not finished
+    DONE,
+    SKIPPED_BINARY,
+    SKIPPED_ERROR,
+} Outcome;
+
+
+// An accumulator that is passed around by the walkers, to the walkers_callback function
+// Its main use is to keep track of what has been done
+// It is complemented by the walkers' tracker object, defined in walkers.h, 
+// that'll hold results that are specific to the walker (e.g. skipped directories and hidden files)
+
+typedef struct {
+    int outcome_totals[OUTCOMES_COUNT];
+    int convention_totals[CONVENTIONS_COUNT];
+    CommandLine* cmd_line_args;
+} Accumulator;
+
+
+
+
+// =============== ALL ABOUT CONVENTION NAMES =============== 
+
 #define CL_NAMES_COUNT 11
-const cmd_line_args_to_convention cl_names[CL_NAMES_COUNT] = {
+const cmd_line_args_to_convention cl_names[] = {
     {.name="check",   .convention=NO_CONVENTION},
     {.name="lf",      .convention=LF},
     {.name="unix",    .convention=LF},
@@ -82,9 +126,11 @@ setup_conventions_display_names() {
     convention_short_display_names[MIXED] = "Mixed";
 }
 
-//
-// THE HELP SCREEN
-//
+
+
+
+
+// =============== THE HELP AND VERSION SCREENS =============== 
 
 void
 display_help_and_quit() {
@@ -117,9 +163,9 @@ display_help_and_quit() {
 
 void
 display_version_and_quit() {
-    fprintf(stderr, "\n   * endlines version %s \n", VERSION);
+    fprintf(stderr, "\n   * endlines version %s \n"
 
-    fprintf(stderr, "   * Copyright 2014-2016 Mathias Dolidon\n\n"
+                    "   * Copyright 2014-2016 Mathias Dolidon\n\n"
     
                     "   Licensed under the Apache License, Version 2.0 (the \"License\"\n"
                     "   you may not use this file except in compliance with the License.\n"
@@ -131,29 +177,17 @@ display_version_and_quit() {
                     "   distributed under the License is distributed on an \"AS IS\" BASIS,\n"
                     "   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
                     "   See the License for the specific language governing permissions and\n"
-                    "   limitations under the License.\n\n");
+                    "   limitations under the License.\n\n", VERSION);
 
-    exit(0);
+    exit(1);
 }
 
 
 
-//
-// PARSING COMMAND LINE OPTIONS
-// Yes it's a huge and ugly switch
-//
 
-typedef struct {
-    Convention convention;
-    bool quiet;
-    bool verbose;
-    bool binaries;
-    bool keepdate;
-    bool recurse;
-    bool process_hidden;
-    char** filenames;
-    int file_count;
-} CommandLine;
+
+// =============== PARSING COMMAND LINE OPTIONS =============== 
+// Yes it's a huge and ugly switch
 
 CommandLine
 parse_cmd_line_args(int argc, char** argv) {
@@ -199,22 +233,10 @@ parse_cmd_line_args(int argc, char** argv) {
 
 
 
-//
-//
-// CONVERTING OR CHECKING ONE FILE
-//
-//
 
 
-// Helpers
+// =============== CONVERTING OR CHECKING ONE FILE ===============
 
-#define OUTCOMES_COUNT 4
-typedef enum {
-    CAN_CONTINUE,
-    DONE,
-    SKIPPED_BINARY,
-    SKIPPED_ERROR,
-} Outcome;
 
 
 Outcome
@@ -286,6 +308,76 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
     return CAN_CONTINUE;
 }
 
+char*
+get_file_extension(char* name) {
+    char* extension = name + strlen(name);
+    while(*extension != '.' && extension != name) {
+        -- extension;
+    }
+    if(extension == name) {
+        return "";
+    } else {
+        return extension+1;
+    }
+}
+
+// Only the extensions we're most likely to encounter inside the
+// kind of project that also host a lot of text data : source code,
+// web project etc.
+#define KNOWN_BINARY_EXTENSIONS_COUNT 134
+char 
+*known_binary_file_extensions[] = {
+    // images
+    "jpg", "jpeg", "tif", "tiff", "gif", 
+    "png", "tga", "bmp", "xcf", "raw", "pdf",
+    "jfif",
+    "JPG", "JPEG", "TIF", "TIFF", "GIF", 
+    "PNG", "TGA", "BMP", "XCF", "RAW", "PDF",
+    "JFIF",
+
+    // sound
+    "mp3", "flac", "3ga", "m4a", "wav", "aiff", "wma",
+    "au", "ogg", "mid",
+    "MP3", "FLAC", "3GA", "M4A", "WAV", "AIFF", "WMA",
+    "AU", "OGG", "MID",
+
+    // database
+    "db", "fdb", "accdb", "gdb", "mdb", "wdb", "sqlite",
+    "sqlite3", "db3", "dbf", "myd", "sdf",
+    "s3db", "sdb", "odb", "t2d",
+    "DB", "FDB", "ACCDB", "GDB", "MDB", "WDB", "SQLITE",
+    "SQLITE3", "DB3", "DBF", "MYD", "SDF",
+    "S3DB", "SDB", "ODB", "T2D",
+
+    // office
+    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pub", "pubx",
+    "dotx", "odt", "sxw", "odp", "sxi", "stw", "sdd",
+    "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "PUB", "PUBX",
+    "DOTX", "ODT", "SXW", "ODP", "SXI", "STW", "SDD",
+
+    // archive
+    "jar", "7z", "tgz", "gz", "tar", "zip", "dmg",
+    "zlib", "pkg", "bz2", "iso",
+    "JAR", "7Z", "TGZ", "GZ", "TAR", "ZIP", "DMG",
+    "ZLIB", "PKG", "BZ2", "ISO",
+
+    // executable / object
+    "class", "o", "exe",
+    "CLASS", "O", "EXE"
+};
+
+bool
+has_known_binary_file_extension(char* filename) {
+    char* ext = get_file_extension(filename);
+    for(int i=0; i<KNOWN_BINARY_EXTENSIONS_COUNT; i++) {
+        if( !strcmp(ext, known_binary_file_extensions[i]) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 // Main conversion (resp. checking) handlers
 
@@ -293,13 +385,18 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
 Outcome
-convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
+convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
     if(cmd_line_args->convention <= NO_CONVENTION || cmd_line_args->convention >= MIXED) {
         fprintf(stderr, "endlines : BUG ; a special convention leaked to convert_one_file.\n"
                         "    Please report an issue to https://github.com/mdolidon/endlines\n"
-                        "    The program will now terminate to avoid any unwanted file modifcations.\n\n");
+                        "    The program will now terminate to avoid any unwanted file modifications.\n\n");
         exit(16);
     }
+
+    if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
+        return SKIPPED_BINARY;
+    }
+
     struct stat statinfo;
     Outcome partial_status;
     FILE *in  = NULL;
@@ -309,13 +406,13 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report
     struct utimbuf original_file_times = get_file_times(&statinfo);
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
-    Report report = convert(in, out, cmd_line_args->convention);
-    memcpy(file_report, &report, sizeof(Report));
+    FileReport report = convert(in, out, cmd_line_args->convention);
+    memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
     fclose(out);
 
-    if(report.contains_control_chars && !cmd_line_args->binaries) {
+    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
         remove(TMP_FILENAME);
         return SKIPPED_BINARY;
     }
@@ -330,16 +427,20 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report
 
 
 Outcome
-check_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) {
+check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
+    if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
+        return SKIPPED_BINARY;
+    }
+
     Outcome partial_status;
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
 
-    Report report = convert(in, NULL, NO_CONVENTION);
-    memcpy(file_report, &report, sizeof(Report));
+    FileReport report = convert(in, NULL, NO_CONVENTION);
+    memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
-    if(report.contains_control_chars && !cmd_line_args->binaries) {
+    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
         return SKIPPED_BINARY;
     }
 
@@ -351,21 +452,12 @@ check_one_file(char* filename, CommandLine* cmd_line_args, Report* file_report) 
 
 
 
-//
-// HANDLING A CONVERSION BATCH
-//
-// First the helpers again
-//
 
-typedef struct {
-    int outcome_totals[OUTCOMES_COUNT];
-    int convention_totals[CONVENTIONS_COUNT];
-    CommandLine* cmd_line_args;
-} Accumulator;
 
+// =============== HANDLING A CONVERSION BATCH ===============
 
 Convention
-get_source_convention(Report* file_report) {
+get_source_convention(FileReport* file_report) {
     Convention c = NO_CONVENTION;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
         if(file_report->count_by_convention[i] > 0) {
@@ -424,14 +516,10 @@ print_outcome_totals(bool dry_run,
     fprintf(stderr, "\n");
 }
 
-//
-// ...and now the business end of batch runs
-//
-
 void
 walkers_callback(char* filename, void* p_accumulator) {
     Outcome outcome;
-    Report file_report;
+    FileReport file_report;
     Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
 
@@ -451,24 +539,34 @@ walkers_callback(char* filename, void* p_accumulator) {
     }
 }
 
+Accumulator
+make_accumulator(CommandLine* cmd_line_args) {
+    Accumulator a;
+    for(int i=0; i<OUTCOMES_COUNT; ++i) {
+        a.outcome_totals[i] = 0;
+    }
+    for(int i=0; i<CONVENTIONS_COUNT; ++i) {
+        a.convention_totals[i] = 0;
+    }
+    a.cmd_line_args = cmd_line_args;
+    return a;
+}
+
+Walk_tracker 
+make_tracker(CommandLine* cmd_line_args, Accumulator* accumulator) {
+    Walk_tracker t = make_default_walk_tracker(); // from walkers.h
+    t.process_file = &walkers_callback;
+    t.accumulator = accumulator;
+    t.verbose = cmd_line_args->verbose;
+    t.recurse = cmd_line_args->recurse;
+    t.skip_hidden = !cmd_line_args->process_hidden;
+    return t;
+}
 
 void
 convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
-    Accumulator accumulator;
-    for(int i=0; i<OUTCOMES_COUNT; ++i) {
-        accumulator.outcome_totals[i] = 0;
-    }
-    for(int i=0; i<CONVENTIONS_COUNT; ++i) {
-        accumulator.convention_totals[i] = 0;
-    }
-    accumulator.cmd_line_args = cmd_line_args;
-
-    Walk_tracker tracker = make_default_walk_tracker();
-    tracker.process_file = &walkers_callback;
-    tracker.accumulator = &accumulator;
-    tracker.verbose = cmd_line_args->verbose;
-    tracker.recurse = cmd_line_args->recurse;
-    tracker.skip_hidden = !cmd_line_args->process_hidden;
+    Accumulator accumulator = make_accumulator(cmd_line_args);
+    Walk_tracker tracker = make_tracker(cmd_line_args, &accumulator);
 
     if(!cmd_line_args->quiet) {
         if(cmd_line_args->convention == NO_CONVENTION) {
@@ -494,9 +592,9 @@ convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
 
 
 
-//
-// ENTRY POINT
-//
+
+
+// =============== ENTRY POINT ===============
 
 int
 main(int argc, char**argv) {

@@ -204,6 +204,28 @@ else
     FAILURES="yes"
 fi
 
+cp bin_as_per_extension.exe bin_as_per_extension_test.exe
+../endlines unix -v bin_as_per_extension_test.exe 2>extbintest >/dev/null
+EXTBINARY=`cat extbintest`
+if [[ $EXTBINARY == *skipped* ]]
+then
+    echo "OK : skips binaries with known extension without reading contents"
+else
+    echo "FAILURE : didn't mention skipping a binary file with a known extension"
+    FAILURES="yes"
+fi
+
+cp bin_as_per_extension.exe bin_as_per_extension_forced_test.exe
+../endlines unix -v -b bbintest 2>extbinforcetest >/dev/null
+EXTBINARYFORCE=`cat extbinforcetest`
+if [[ $EXTBINARYFORCE != *skipped* ]]
+then
+    echo "OK : option -b forces conversion of binaries with known extension"
+else
+    echo "FAILURE : skipped a binary with a known binary extension in spite of -b"
+    FAILURES="yes"
+fi
+
 cp unixref timetest
 touch -t 200001010000 timetest
 ORIGINALTIME=`ls -l timetest`
@@ -308,6 +330,7 @@ rm .tmp_endlines
 
 
 rm *test
+rm *test.exe
 
 echo
 if [[ -z $FAILURES ]]

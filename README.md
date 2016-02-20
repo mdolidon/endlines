@@ -1,4 +1,4 @@
-| Version 1.3 | Apache License 2.0 |
+| Version 1.4 | Apache License 2.0 |
 | ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -40,6 +40,9 @@ Let the help screen say it all :
        Examples :
          endlines check *.txt
          endlines linux -k -r a_folder another_folder
+
+New in version 1.4 :
+- some very common binary file extensions (77 of them as of now), most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters
 
 New in version 1.3 :
 - Endlines reports on the original conventions it found

@@ -26,7 +26,7 @@
 // one of these three values.
 
 
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define BUFFERSIZE 15000
 #define TMP_FILENAME ".tmp_endlines"
 
@@ -66,14 +66,14 @@ typedef enum {
 
 // Reports from the conversion function to the caller
 typedef struct {
-    bool contains_control_chars;
-    int count_by_convention[CONVENTIONS_COUNT];
-} Report;
+    bool contains_non_text_chars;
+    unsigned int count_by_convention[CONVENTIONS_COUNT];
+} FileReport;
 
 
 // This function means business.
 // It is exported by engine.c
-Report
+FileReport
 convert(FILE* p_instream, FILE* p_outstream, Convention convention);
 
 #endif
