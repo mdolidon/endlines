@@ -41,12 +41,7 @@ Let the help screen say it all :
          endlines check *.txt
          endlines linux -k -r a_folder another_folder
 
-New in version 1.4 :
-- some very common binary file extensions (77 of them as of now), most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters
 
-New in version 1.3 :
-- Endlines reports on the original conventions it found
-- `check` mode allows you to perform a dry run
 
 Install
 -------
@@ -62,3 +57,17 @@ Operating systems
 I provide support for **Linux, all BSDs and OSX**. Any POSIX compliant system should be supported out of the box.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
+
+
+Version history
+--------------
+
+New in version 1.4 :
+- some very common binary file extensions (77 of them as of now), most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters
+
+New in version 1.3 :
+- Endlines reports on the original conventions it found
+- `check` mode allows you to perform a dry run
+
+Version 1.2 :
+- earliest version without any known bug
