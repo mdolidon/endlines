@@ -138,26 +138,25 @@ display_help_and_quit() {
     fprintf(stderr, "\n"
                     "  endlines ACTION [OPTIONS] [FILES]\n\n"
 
-                    "  If no files are specified, endlines converts from stdin to stdout.\n"
                     "  ACTION can be :\n"
-                    "    lf, unix, linux, osx    : convert all endings to LF\n"
-                    "    crlf, windows, win, dos : convert all endings to CR-LF\n"
-                    "    cr, oldmac              : convert all endings to CR\n"
-                    "    check                   : perform a dry run to check current conventions\n\n"
+                    "    lf, unix, linux, osx    : convert all endings to LF.\n"
+                    "    crlf, windows, win, dos : convert all endings to CR-LF.\n"
+                    "    cr, oldmac              : convert all endings to CR.\n"
+                    "    check                   : perform a dry run to check current conventions.\n\n"
 
-                    "  General options :\n"
-                    "    -q / --quiet    : silence all but the error messages.\n"
-                    "    -v / --verbose  : print more about what's going on.\n"
-                    "    --version       : print version number.\n\n"
-                    "  File options :\n"
-                    "    -b / --binaries : don't skip binary files.\n"
-                    "    -k / --keepdate : keep files' last modified and last access time stamps.\n"
-                    "    -r / --recurse  : recurse into directories.\n"
-                    "    -h / --hidden   : process hidden files (/directories) too. \n\n"
+                    "  If no files are specified, endlines converts from stdin to stdout.\n\n"
 
-                    "  Examples :\n"
-                    "    endlines check *.txt\n"
-                    "    endlines linux -k -r a_folder another_folder\n\n");
+                    "  General   -q / --quiet    : silence all but the error messages.\n"
+                    "            -v / --verbose  : print more about what's going on.\n"
+                    "            --version       : print version and license.\n\n"
+
+                    "  Files     -b / --binaries : don't skip binary files.\n"
+                    "            -k / --keepdate : keep last modified and last access times.\n"
+                    "            -r / --recurse  : recurse into directories.\n"
+                    "            -h / --hidden   : process hidden files (/directories) too.\n\n"
+
+                    "  Examples  endlines check *.txt\n"
+                    "            endlines linux -k -r aFolder anotherFolder\n\n");
     exit(1);
 }
 
@@ -310,10 +309,10 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
 char*
 get_file_extension(char* name) {
     char* extension = name + strlen(name);
-    while(*extension != '.' && extension != name) {
+    while(*extension != '.' && *extension != '/' && extension != name) {
         -- extension;
     }
-    if(extension == name) {
+    if(*extension == '/' || extension == name) {
         return "";
     } else {
         return extension+1;
