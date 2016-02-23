@@ -60,11 +60,11 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 Version history
 --------------
 
-**New in version 1.4.1** : added known extensions. See `src/known_binary_extensions.h` for thorough list.
+**1.4.1** : added known extensions. See `src/known_binary_extensions.h` for thorough list.
 
-**New in version 1.4** : some very common binary file extensions, most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters.
+**1.4** : some very common binary file extensions, most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters.
 
-**New in version 1.3** : Endlines reports on the original conventions it found. `check` mode allows you to perform a dry run.
+**1.3** : Endlines reports on the original conventions it found. `check` mode allows you to perform a dry run.
 
     $ endlines check -r .
     endlines : dry run, scanning files
@@ -78,4 +78,4 @@ Version history
                2403 binaries skipped
                480 hidden files skipped
 
-**Version 1.2** : earliest version without any known bug.
+**1.2** : earliest version without any known bug.
