@@ -60,7 +60,7 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 Version history
 --------------
 
-**1.4.1** : added known extensions. See `src/known_binary_extensions.h` for thorough list.
+**1.4.1** : added a few known extensions. See `src/known_binary_extensions.h` for thorough list.
 
 **1.4** : some very common binary file extensions, most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters.
 
