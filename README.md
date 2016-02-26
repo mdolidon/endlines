@@ -9,10 +9,24 @@ Endlines smartly converts text files from and to the following line ending conve
 
 - No need to know about the source files' convention. Multiple conventions can be mixed within a single file.
 - Straightforward syntax for multiple files and recursion into directories. Hidden files and directories can either be avoided or processed (you don't want to mess with your `.git`, do you ?)
-- Binary files will be detected and skipped by default. This can be overriden of course.
+- Binary files will be detected and skipped by default, according to a filter based on both file extension and file content. This can be overriden of course.
 - Files' last access and last modified time stamps can be preserved.
 - UTF-8 files as well as all single byte encodings will be treated well. However, UCS-2 and UTF-16/32 are not supported.
+- Whether converting or checking, a report is given on the original state of line endings that were found.
 
+```
+    $ endlines check -r .
+    endlines : dry run, scanning files
+     
+    endlines : 6431 files checked ; found :
+                  - 142 No line ending
+                  - 1 Legacy Mac (CR)
+                  - 6250 Unix (LF)
+                  - 37 Windows (CR-LF)
+                  - 1 Mixed endings
+               2403 binaries skipped
+               480 hidden files skipped
+```
 
 Let the help screen say it all :
 
@@ -60,22 +74,4 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 Version history
 --------------
 
-**1.4.1** : added a few known extensions. See `src/known_binary_extensions.h` for thorough list.
-
-**1.4** : some very common binary file extensions, most likely to be found inside a source tree, will be considered binary files without needing to check the contents ; this allows for an even more conservative approach, in the seldom case where some binary files don't contain any non text characters.
-
-**1.3** : Endlines reports on the original conventions it found. `check` mode allows you to perform a dry run.
-
-    $ endlines check -r .
-    endlines : dry run, scanning files
-     
-    endlines : 6431 files checked ; found :
-                  - 142 No line ending
-                  - 1 Legacy Mac (CR)
-                  - 6250 Unix (LF)
-                  - 37 Windows (CR-LF)
-                  - 1 Mixed endings
-               2403 binaries skipped
-               480 hidden files skipped
-
-**1.2** : earliest version without any known bug.
+Use *1.4.1*, that's all. :)
