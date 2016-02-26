@@ -69,9 +69,3 @@ Operating systems
 I provide support for **Linux, all BSDs and OSX**. Any POSIX compliant system should be supported out of the box.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
-
-
-Version history
---------------
-
-Use *1.4.1*, that's all. :)
