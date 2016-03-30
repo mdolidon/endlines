@@ -39,7 +39,7 @@ typedef enum {
 // and don't try to push into an input stream.
 
 
-typedef struct Buffered_stream {
+typedef struct {
     FILE* stream;
     BYTE buffer[BUFFERSIZE];
     int buf_size;
