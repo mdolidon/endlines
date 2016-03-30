@@ -1,5 +1,5 @@
-| Version 1.4.1 | Apache License 2.0 |
-| ------------- | ------------------ |
+| Version 1.5 | Apache License 2.0 |
+| ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
 
@@ -11,7 +11,7 @@ Endlines smartly converts text files from and to the following line ending conve
 - Straightforward syntax for multiple files and recursion into directories. Hidden files and directories can either be avoided or processed (you don't want to mess with your `.git`, do you ?)
 - Binary files will be detected and skipped by default, according to a filter based on both file extension and file content. This can be overriden of course.
 - Files' last access and last modified time stamps can be preserved.
-- UTF-8 files as well as all single byte encodings will be treated well. However, UCS-2 and UTF-16/32 are not supported.
+- UTF-8 files, UTF-16 with BOM as well as all single byte encodings will be treated well. However, UTF-32 is not supported (files will be seen as binary and left untouched).
 - Whether converting or checking, a report is given on the original state of line endings that were found.
 
 ```
@@ -40,6 +40,7 @@ Let the help screen say it all :
         check                   : perform a dry run to check current conventions.
     
       If no files are specified, endlines converts from stdin to stdout.
+      Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.
     
       General   -q / --quiet    : silence all but the error messages.
                 -v / --verbose  : print more about what's going on.
@@ -52,7 +53,6 @@ Let the help screen say it all :
     
       Examples  endlines check *.txt
                 endlines linux -k -r aFolder anotherFolder
-    
 
 
 Install

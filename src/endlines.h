@@ -26,8 +26,8 @@
 // one of these three values.
 
 
-#define VERSION "1.4.1"
-#define BUFFERSIZE 15000
+#define VERSION "1.5"
+#define BUFFERSIZE 16384
 #define TMP_FILENAME ".tmp_endlines"
 
 

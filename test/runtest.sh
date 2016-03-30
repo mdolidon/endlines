@@ -119,17 +119,55 @@ cp utf8unixref utf8test
 ../endlines win utf8test 2>/dev/null
 
 
-UTFEXPECTED=`$MD5<utf8winref`
-UTFOUT=`$MD5<utf8test`
+UTF8EXPECTED=`$MD5<utf8winref`
+UTF8OUT=`$MD5<utf8test`
 
-if [[ "$UTFEXPECTED" == "$UTFOUT" ]]
+if [[ "$UTF8EXPECTED" == "$UTF8OUT" ]]
 then
     echo "OK : UTF-8"
 else
-    echo "FAILURE : UTF-8 file"
+    echo "FAILURE : UTF-8"
     FAILURES="yes"
 fi
 rm utf8test
+
+
+
+
+cp utf16le_unix_ref utf16letest
+../endlines win utf16letest 2>/dev/null
+
+
+UTF16LEEXPECTED=`$MD5<utf16le_win_ref`
+UTF16LEOUT=`$MD5<utf16letest`
+
+if [[ "$UTF16LEEXPECTED" == "$UTF16LEOUT" ]]
+then
+    echo "OK : UTF-16 Little Endian"
+else
+    echo "FAILURE : UTF-16 Little Endian"
+    FAILURES="yes"
+fi
+rm utf16letest
+
+
+
+
+cp utf16be_unix_ref utf16betest
+../endlines win utf16betest 2>/dev/null
+
+
+UTF16BEEXPECTED=`$MD5<utf16be_win_ref`
+UTF16BEOUT=`$MD5<utf16betest`
+
+if [[ "$UTF16BEEXPECTED" == "$UTF16BEOUT" ]]
+then
+    echo "OK : UTF-16 Big Endian"
+else
+    echo "FAILURE : UTF-16 Big Endian"
+    FAILURES="yes"
+fi
+rm utf16betest
 
 
 #

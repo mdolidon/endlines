@@ -144,7 +144,8 @@ display_help_and_quit() {
                     "    cr, oldmac              : convert all endings to CR.\n"
                     "    check                   : perform a dry run to check current conventions.\n\n"
 
-                    "  If no files are specified, endlines converts from stdin to stdout.\n\n"
+                    "  If no files are specified, endlines converts from stdin to stdout.\n"
+                    "  Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.\n\n"
 
                     "  General   -q / --quiet    : silence all but the error messages.\n"
                     "            -v / --verbose  : print more about what's going on.\n"
