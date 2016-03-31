@@ -97,18 +97,11 @@ detect_buffer_word_type(Buffered_stream* b) {
 
 
 // MANAGING AN OUTPUT BUFFER
-// Pushing and flushing check the presence of an actual stream
-// b->stream is allowed to contain a null-pointer ; this is used when
-// checking files, and lets the loop be written only once.
-// Speed gains made by writing down one version for checking and
-// another one for converting would be insignificant.
 
 static inline void
 flush_buffer(Buffered_stream* b) {
-    if(b->stream) {
-        fwrite(b->buffer, 1, b->buf_ptr, b->stream);
-        b->buf_ptr = 0;
-    }
+    fwrite(b->buffer, 1, b->buf_ptr, b->stream);
+    b->buf_ptr = 0;
 }
 
 static inline void
@@ -120,44 +113,41 @@ push_byte(BYTE value, Buffered_stream* b) {
     }
 }
 
-
-// function pointer was 20% slower than a big switch
 static inline void
-push_word(WORD w, Buffered_stream* b) {
-    if(b->stream) {
-        switch(b->wordType) {
-            case WT_1BYTE:
-                push_byte(w & 0x000000FF, b);
-                break;
-            case WT_2BYTE_LE:
-                push_byte(w & 0x000000FF, b);
-                push_byte((w & 0x0000FF00) >> 8, b);
-                break;
-            case WT_2BYTE_BE:
-                push_byte((w & 0x0000FF00) >> 8, b);
-                push_byte(w & 0x000000FF, b);
-                break;
-        }
-    }
+push_utf8_word(WORD w, Buffered_stream* b) {
+    push_byte(w & 0x000000FF, b);
 }
 
 static inline void
-push_newline(Convention convention, Buffered_stream* b) {
+push_utf16le_word(WORD w, Buffered_stream* b) {
+    push_byte(w & 0x000000FF, b);
+    push_byte((w & 0x0000FF00) >> 8, b);
+}
+
+static inline void
+push_utf16be_word(WORD w, Buffered_stream* b) {
+    push_byte((w & 0x0000FF00) >> 8, b);
+    push_byte(w & 0x000000FF, b);
+}
+
+define(m4_expand_push_newline,
+static inline void
+push_$1_newline(Convention convention, Buffered_stream* b) {
     switch(convention) {
-        case CR:   
-            push_word(13, b);
-            break;
-        case LF:
-            push_word(10, b);
-            break;
-        case CRLF:
-            push_word(13, b);
-            push_word(10, b);
-            break;
-        default:
-            break;
+        case CR: push_$1_word(13, b);
+                 break;
+        case LF: push_$1_word(10, b);
+                 break;
+        case CRLF: push_$1_word(13, b);
+                   push_$1_word(10, b);
+                   break;
+        default: break;
     }
 }
+)
+m4_expand_push_newline(utf8)
+m4_expand_push_newline(utf16le)
+m4_expand_push_newline(utf16be)
 
 
 
@@ -186,25 +176,29 @@ pull_byte(Buffered_stream* b) {
     }
 }
 
-// function pointer was 20% slower than a big switch
 static inline WORD
-pull_word(Buffered_stream *b) {
-    WORD b1, b2, w;
-    switch(b->wordType) {
-        case WT_1BYTE:
-            return (WORD) pull_byte(b);
-        case WT_2BYTE_LE:
-            b1 = (WORD) pull_byte(b);
-            b2 = (WORD) pull_byte(b);
-            w = b1 + (b2<<8);
-            return w;
-        case WT_2BYTE_BE:
-            b1 = (WORD) pull_byte(b);
-            b2 = (WORD) pull_byte(b);
-            w = (b1<<8) + b2;
-            return w;
-    }
+pull_utf8_word(Buffered_stream *b) {
+    return (WORD) pull_byte(b);
 }
+
+static inline WORD
+pull_utf16le_word(Buffered_stream *b) {
+    WORD b1, b2, w;
+    b1 = (WORD) pull_byte(b);
+    b2 = (WORD) pull_byte(b);
+    w = b1 + (b2<<8);
+    return w;
+}
+
+static inline WORD
+pull_utf16be_word(Buffered_stream *b) {
+    WORD b1, b2, w;
+    b1 = (WORD) pull_byte(b);
+    b2 = (WORD) pull_byte(b);
+    w = (b1<<8) + b2;
+    return w;
+}
+
 
 // LOOKING OUT FOR BINARY DATA IN A STREAM
 
@@ -225,34 +219,38 @@ init_report(FileReport* report) {
     }
 }
 
-FileReport
-convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
-    Buffered_stream input_stream;
-    Buffered_stream output_stream;
-    setup_input_buffered_stream(&input_stream, p_instream);
-    setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordType);
+
+// Main loop generator macro
+// Parameters :
+// $1 : check or convert
+// $2 : utf8, utf16le or utf16be
+define(`m4expand_processing_loop',
+
+`ifelse($1, convert,
+FileReport convert_$2(Buffered_stream* input_stream, Buffered_stream* output_stream, Convention convention) {,
+FileReport check_$2(Buffered_stream* input_stream) {
+)'
 
     FileReport report;
     init_report(&report);
-
     WORD word;
     bool last_was_13 = false;
 
     while(true) {
-        word = pull_word(&input_stream);
-        if(input_stream.eof) {
+        word = pull_$2_word(input_stream);
+        if(input_stream->eof) {
             break;
         }
         if(is_non_text_char(word)) {
             report.contains_non_text_chars = true;
         }
         if(word == 13) {
-            push_newline(convention, &output_stream);
+            `ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(word == 10) {
             if(!last_was_13) {
-                push_newline(convention, &output_stream);
+                `ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
                 ++ report.count_by_convention[LF];
             } else {
                 -- report.count_by_convention[CR];
@@ -260,10 +258,43 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
             }
             last_was_13 = false;
         } else {
-            push_word(word, &output_stream);
-            last_was_13 = false;
+                `ifelse($1, `convert', push_$2`_word(word, output_stream);')'
+                        last_was_13 = false;
         }
     }
-    flush_buffer(&output_stream);
+    `ifelse($1, convert, `flush_buffer(output_stream);')'
+
     return report;
+}
+)
+
+
+m4expand_processing_loop(check,utf8) // expands into a check_utf8 function
+m4expand_processing_loop(check,utf16le)
+m4expand_processing_loop(check,utf16be)
+m4expand_processing_loop(convert,utf8)
+m4expand_processing_loop(convert,utf16le)
+m4expand_processing_loop(convert,utf16be)
+
+
+FileReport
+convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
+    Buffered_stream input_stream;
+    setup_input_buffered_stream(&input_stream, p_instream);
+
+    if(p_outstream) {
+        Buffered_stream output_stream;
+        setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordType);
+        switch(input_stream.wordType) {
+            case WT_1BYTE: return convert_utf8(&input_stream, &output_stream, convention);
+            case WT_2BYTE_LE: return convert_utf16le(&input_stream, &output_stream, convention);
+            case WT_2BYTE_BE: return convert_utf16be(&input_stream, &output_stream, convention);
+        }
+    } else {
+        switch(input_stream.wordType) {
+            case WT_1BYTE: return check_utf8(&input_stream);
+            case WT_2BYTE_LE: return check_utf16le(&input_stream);
+            case WT_2BYTE_BE: return check_utf16be(&input_stream);
+        }
+    }
 }

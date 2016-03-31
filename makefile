@@ -13,8 +13,11 @@ endlines: $(OBJECTS)
 .o:
 	$(CC) -c $(CFLAGS) -o $@
 
+src/engine.c: src/engine.c.m4
+	m4 src/engine.c.m4 > src/engine.c
+
 clean:
-	rm src/*.o endlines
+	rm src/*.o src/engine.c endlines
 
 install: endlines
 	mv endlines /usr/local/bin/endlines
