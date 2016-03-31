@@ -18,6 +18,27 @@
 
 #include "endlines.h"
 
+/* 
+   About the use of macros in this file
+
+   Initially the engine was written as regular C code.
+   Behviour variations to accomodate check mode vs. convert mode 
+   and UTF8 vs UTF16LE vs UTF16BE alternatives were managed, at first
+   with dynamic function dispatch, then with simple switches (20% speed gain).
+   
+   However this still required a lot of conditional checks in the middle of a tight loop.
+   In particular in check mode, when acting on files that are aldready in the OS' FS cache,
+   these checks have a significant performance impact.
+   Rewriting them as M4 macros expanding into 6 specialized functions
+   made the program run nearly twice faster in the aforementionned situation.
+
+   Even though endline's running time is short anyway, I like the idea of keeping things tight,
+   provided there's no high cost in terms of code readability and correctness.
+   Let's say this is an experiment with M4. :)
+*/
+
+
+
 
 // Word as in "binary word", not as in "english word"
 
@@ -269,8 +290,8 @@ FileReport check_$2(Buffered_stream* input_stream) {
 )
 
 
-m4expand_processing_loop(check,utf8) // expands into a check_utf8 function
-m4expand_processing_loop(check,utf16le)
+m4expand_processing_loop(check,utf8)      // expands into a check_utf8 function
+m4expand_processing_loop(check,utf16le)   // ... and so on
 m4expand_processing_loop(check,utf16be)
 m4expand_processing_loop(convert,utf8)
 m4expand_processing_loop(convert,utf16le)
@@ -278,7 +299,7 @@ m4expand_processing_loop(convert,utf16be)
 
 
 FileReport
-convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
+engine_run(FILE* p_instream, FILE* p_outstream, Convention convention) {
     Buffered_stream input_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
 
@@ -286,13 +307,13 @@ convert(FILE* p_instream, FILE* p_outstream, Convention convention) {
         Buffered_stream output_stream;
         setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordType);
         switch(input_stream.wordType) {
-            case WT_1BYTE: return convert_utf8(&input_stream, &output_stream, convention);
+            case WT_1BYTE:    return convert_utf8(&input_stream, &output_stream, convention);
             case WT_2BYTE_LE: return convert_utf16le(&input_stream, &output_stream, convention);
             case WT_2BYTE_BE: return convert_utf16be(&input_stream, &output_stream, convention);
         }
     } else {
         switch(input_stream.wordType) {
-            case WT_1BYTE: return check_utf8(&input_stream);
+            case WT_1BYTE:    return check_utf8(&input_stream);
             case WT_2BYTE_LE: return check_utf16le(&input_stream);
             case WT_2BYTE_BE: return check_utf16be(&input_stream);
         }

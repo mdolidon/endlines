@@ -152,9 +152,9 @@ display_help_and_quit() {
                     "            --version       : print version and license.\n\n"
 
                     "  Files     -b / --binaries : don't skip binary files.\n"
+                    "            -h / --hidden   : process hidden files (/directories) too.\n"
                     "            -k / --keepdate : keep last modified and last access times.\n"
-                    "            -r / --recurse  : recurse into directories.\n"
-                    "            -h / --hidden   : process hidden files (/directories) too.\n\n"
+                    "            -r / --recurse  : recurse into directories.\n\n"
 
                     "  Examples  endlines check *.txt\n"
                     "            endlines linux -k -r aFolder anotherFolder\n\n");
@@ -360,7 +360,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_re
     struct utimbuf original_file_times = get_file_times(&statinfo);
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
-    FileReport report = convert(in, out, cmd_line_args->convention);
+    FileReport report = engine_run(in, out, cmd_line_args->convention);
     memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
@@ -390,7 +390,7 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
 
-    FileReport report = convert(in, NULL, NO_CONVENTION);
+    FileReport report = engine_run(in, NULL, NO_CONVENTION);
     memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
@@ -569,7 +569,7 @@ main(int argc, char**argv) {
                 fprintf(stderr, "Converting standard input to %s\n", convention_display_names[cmd_line_args.convention]);
             }
         }
-        convert(stdin, stdout, cmd_line_args.convention);
+        engine_run(stdin, stdout, cmd_line_args.convention);
     }
     return 0;
 }
