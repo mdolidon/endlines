@@ -22,13 +22,13 @@
    About the use of macros in this file
 
    Initially the engine was written as regular C code.
-   Behviour variations to accomodate check mode vs. convert mode 
+   Behaviour variations to accomodate check mode vs. convert mode 
    and UTF8 vs UTF16LE vs UTF16BE alternatives were managed, at first
-   with dynamic function dispatch, then with simple switches (20% speed gain).
+   with dynamic function dispatch, then later with simple switches (20% speed gain).
    
    However this still required a lot of conditional checks in the middle of a tight loop.
    In particular in check mode, when acting on files that are aldready in the OS' FS cache,
-   these checks have a significant performance impact.
+   these conditionals have a significant performance impact.
    Rewriting them as M4 macros expanding into 6 specialized functions
    made the program run nearly twice faster in the aforementionned situation.
 
@@ -151,7 +151,7 @@ push_utf16be_word(WORD w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
 }
 
-define(m4_expand_push_newline,
+m4_define(expand_push_newline,
 static inline void
 push_$1_newline(Convention convention, Buffered_stream* b) {
     switch(convention) {
@@ -166,9 +166,9 @@ push_$1_newline(Convention convention, Buffered_stream* b) {
     }
 }
 )
-m4_expand_push_newline(utf8)
-m4_expand_push_newline(utf16le)
-m4_expand_push_newline(utf16be)
+expand_push_newline(utf8)
+expand_push_newline(utf16le)
+expand_push_newline(utf16be)
 
 
 
@@ -245,11 +245,11 @@ init_report(FileReport* report) {
 // Parameters :
 // $1 : check or convert
 // $2 : utf8, utf16le or utf16be
-define(`m4expand_processing_loop',
+m4_define(`expand_processing_loop',
 
-`ifelse($1, convert,
-FileReport convert_$2(Buffered_stream* input_stream, Buffered_stream* output_stream, Convention convention) {,
-FileReport check_$2(Buffered_stream* input_stream) {
+`m4_ifelse($1, convert,
+`FileReport convert_$2(Buffered_stream* input_stream, Buffered_stream* output_stream, Convention convention) {',
+`FileReport check_$2(Buffered_stream* input_stream) {'
 )'
 
     FileReport report;
@@ -266,12 +266,12 @@ FileReport check_$2(Buffered_stream* input_stream) {
             report.contains_non_text_chars = true;
         }
         if(word == 13) {
-            `ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
+            `m4_ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(word == 10) {
             if(!last_was_13) {
-                `ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
+                `m4_ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
                 ++ report.count_by_convention[LF];
             } else {
                 -- report.count_by_convention[CR];
@@ -279,23 +279,23 @@ FileReport check_$2(Buffered_stream* input_stream) {
             }
             last_was_13 = false;
         } else {
-                `ifelse($1, `convert', push_$2`_word(word, output_stream);')'
-                        last_was_13 = false;
+            `m4_ifelse($1, `convert', push_$2`_word(word, output_stream);')'
+            last_was_13 = false;
         }
     }
-    `ifelse($1, convert, `flush_buffer(output_stream);')'
+    `m4_ifelse($1, convert, `flush_buffer(output_stream);')'
 
     return report;
 }
 )
 
 
-m4expand_processing_loop(check,utf8)      // expands into a check_utf8 function
-m4expand_processing_loop(check,utf16le)   // ... and so on
-m4expand_processing_loop(check,utf16be)
-m4expand_processing_loop(convert,utf8)
-m4expand_processing_loop(convert,utf16le)
-m4expand_processing_loop(convert,utf16be)
+expand_processing_loop(check,utf8)      // expands into a check_utf8 function
+expand_processing_loop(check,utf16le)   // ... and so on
+expand_processing_loop(check,utf16be)
+expand_processing_loop(convert,utf8)
+expand_processing_loop(convert,utf16le)
+expand_processing_loop(convert,utf16be)
 
 
 FileReport

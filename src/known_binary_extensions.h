@@ -32,13 +32,13 @@ char
 
 
     // sound
-    "mp3", "flac", "3ga", "m4a", "wav", "aiff", "wma", "m4a", "mka", "au", "ogg", "mid",
-    "MP3", "FLAC", "3GA", "M4A", "WAV", "AIFF", "WMA", "M4A", "MKA", "AU", "OGG", "MID",
+    "mp3", "flac", "3ga", "m4a", "wav", "aiff", "wma", "mka", "au", "ogg", "mid",
+    "MP3", "FLAC", "3GA", "M4A", "WAV", "AIFF", "WMA", "MKA", "AU", "OGG", "MID",
 
 
     // video
-    "flv", "avi", "mkv", "wmv",
-    "FLV", "AVI", "MKV", "WMV",
+    "flv", "avi", "mkv", "wmv", "m4v", "mp4", "vob",
+    "FLV", "AVI", "MKV", "WMV", "M4V", "MP4", "VOB",
 
 
     // database

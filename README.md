@@ -1,4 +1,4 @@
-| Version 1.5 | Apache License 2.0 |
+| Version 1.6 | Apache License 2.0 |
 | ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -47,9 +47,9 @@ Let the help screen say it all :
                 --version       : print version and license.
     
       Files     -b / --binaries : don't skip binary files.
+                -h / --hidden   : process hidden files (/directories) too.
                 -k / --keepdate : keep last modified and last access times.
                 -r / --recurse  : recurse into directories.
-                -h / --hidden   : process hidden files (/directories) too.
     
       Examples  endlines check *.txt
                 endlines linux -k -r aFolder anotherFolder

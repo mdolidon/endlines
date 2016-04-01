@@ -1,3 +1,4 @@
+M4=m4
 CC=cc
 CFLAGS= -O3 -Wall -std=c99 -D_BSD_SOURCE
 LDFLAGS=
@@ -14,7 +15,7 @@ endlines: $(OBJECTS)
 	$(CC) -c $(CFLAGS) -o $@
 
 src/engine.c: src/engine.c.m4
-	m4 src/engine.c.m4 > src/engine.c
+	$(M4) -P src/engine.c.m4 > src/engine.c
 
 clean:
 	rm src/*.o src/engine.c endlines
