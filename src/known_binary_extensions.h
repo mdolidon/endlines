@@ -23,7 +23,7 @@
 // Only the extensions we're most likely to encounter inside the
 // kind of project that also host a lot of text data : source code,
 // web project etc.
-#define KNOWN_BINARY_EXTENSIONS_COUNT 157
+#define KNOWN_BINARY_EXTENSIONS_COUNT 161
 char
 *known_binary_file_extensions[] = {
     // images
