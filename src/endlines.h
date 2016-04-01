@@ -74,6 +74,9 @@ typedef struct {
 // This function means business.
 // It is exported by engine.c
 FileReport
-engine_run(FILE* p_instream, FILE* p_outstream, Convention convention);
+engine_run( FILE* p_instream,
+            FILE* p_outstream,
+            Convention dst_convention,
+            bool interrupt_if_non_text );
 
 #endif

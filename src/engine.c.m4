@@ -153,8 +153,8 @@ push_utf16be_word(WORD w, Buffered_stream* b) {
 
 m4_define(expand_push_newline,
 static inline void
-push_$1_newline(Convention convention, Buffered_stream* b) {
-    switch(convention) {
+push_$1_newline(Convention dst_convention, Buffered_stream* b) {
+    switch(dst_convention) {
         case CR: push_$1_word(13, b);
                  break;
         case LF: push_$1_word(10, b);
@@ -248,8 +248,13 @@ init_report(FileReport* report) {
 m4_define(`expand_processing_loop',
 
 `m4_ifelse($1, convert,
-`FileReport convert_$2(Buffered_stream* input_stream, Buffered_stream* output_stream, Convention convention) {',
-`FileReport check_$2(Buffered_stream* input_stream) {'
+`FileReport convert_$2( Buffered_stream* input_stream, 
+                        Buffered_stream* output_stream,
+                        Convention dst_convention,
+                        bool interrupt_if_non_text) {',
+
+`FileReport check_$2( Buffered_stream* input_stream,
+                      bool interrupt_if_non_text) {'
 )'
 
     FileReport report;
@@ -264,14 +269,17 @@ m4_define(`expand_processing_loop',
         }
         if(is_non_text_char(word)) {
             report.contains_non_text_chars = true;
+            if(interrupt_if_non_text) {
+                break;
+            }
         }
         if(word == 13) {
-            `m4_ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
+            `m4_ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(word == 10) {
             if(!last_was_13) {
-                `m4_ifelse($1, `convert', `push_$2_newline(convention, output_stream);')'
+                `m4_ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
                 ++ report.count_by_convention[LF];
             } else {
                 -- report.count_by_convention[CR];
@@ -299,7 +307,7 @@ expand_processing_loop(convert,utf16be)
 
 
 FileReport
-engine_run(FILE* p_instream, FILE* p_outstream, Convention convention) {
+engine_run(FILE* p_instream, FILE* p_outstream, Convention dst_convention, bool interrupt_if_non_text) {
     Buffered_stream input_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
 
@@ -307,15 +315,18 @@ engine_run(FILE* p_instream, FILE* p_outstream, Convention convention) {
         Buffered_stream output_stream;
         setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordType);
         switch(input_stream.wordType) {
-            case WT_1BYTE:    return convert_utf8(&input_stream, &output_stream, convention);
-            case WT_2BYTE_LE: return convert_utf16le(&input_stream, &output_stream, convention);
-            case WT_2BYTE_BE: return convert_utf16be(&input_stream, &output_stream, convention);
+            case WT_1BYTE:
+                return convert_utf8(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
+            case WT_2BYTE_LE:
+                return convert_utf16le(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
+            case WT_2BYTE_BE:
+                return convert_utf16be(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
         }
     } else {
         switch(input_stream.wordType) {
-            case WT_1BYTE:    return check_utf8(&input_stream);
-            case WT_2BYTE_LE: return check_utf16le(&input_stream);
-            case WT_2BYTE_BE: return check_utf16be(&input_stream);
+            case WT_1BYTE:    return check_utf8(&input_stream, interrupt_if_non_text);
+            case WT_2BYTE_LE: return check_utf16le(&input_stream, interrupt_if_non_text);
+            case WT_2BYTE_BE: return check_utf16be(&input_stream, interrupt_if_non_text);
         }
     }
 }

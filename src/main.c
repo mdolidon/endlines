@@ -360,7 +360,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_re
     struct utimbuf original_file_times = get_file_times(&statinfo);
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
-    FileReport report = engine_run(in, out, cmd_line_args->convention);
+    FileReport report = engine_run(in, out, cmd_line_args->convention, !cmd_line_args->binaries);
     memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
@@ -390,7 +390,7 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
 
-    FileReport report = engine_run(in, NULL, NO_CONVENTION);
+    FileReport report = engine_run(in, NULL, NO_CONVENTION, !cmd_line_args->binaries);
     memcpy(file_report, &report, sizeof(FileReport));
 
     fclose(in);
@@ -569,7 +569,7 @@ main(int argc, char**argv) {
                 fprintf(stderr, "Converting standard input to %s\n", convention_display_names[cmd_line_args.convention]);
             }
         }
-        engine_run(stdin, stdout, cmd_line_args.convention);
+        engine_run(stdin, stdout, cmd_line_args.convention, false);
     }
     return 0;
 }
