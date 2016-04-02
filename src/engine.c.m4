@@ -29,7 +29,7 @@
    However this still required a lot of conditional checks in the middle of a tight loop.
    In particular in check mode, when acting on files that are aldready in the OS' FS cache,
    these conditionals have a significant performance impact.
-   Rewriting them as M4 macros expanding into 6 specialized functions
+   Rewriting them as M4 macros expanding into specialized functions
    made the program run nearly twice faster in the aforementionned situation.
 
    Even though endline's running time is short anyway, I like the idea of keeping things tight,

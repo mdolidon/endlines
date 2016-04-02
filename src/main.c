@@ -340,12 +340,6 @@ has_known_binary_file_extension(char* filename) {
 
 Outcome
 convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
-    if(cmd_line_args->convention <= NO_CONVENTION || cmd_line_args->convention >= MIXED) {
-        fprintf(stderr, "endlines : BUG ; a special convention leaked to convert_one_file.\n"
-                        "    Please report an issue to https://github.com/mdolidon/endlines\n"
-                        "    The program will now terminate to avoid any unwanted file modifications.\n\n");
-        exit(16);
-    }
 
     if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
         return SKIPPED_BINARY;
