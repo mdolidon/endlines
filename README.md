@@ -1,5 +1,5 @@
-| Version 1.6 | Apache License 2.0 |
-| ----------- | ------------------ |
+| Version 1.6.1 | Apache License 2.0 |
+| ------------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
 

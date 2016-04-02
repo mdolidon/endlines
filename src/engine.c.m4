@@ -34,7 +34,6 @@
 
    Even though endline's running time is short anyway, I like the idea of keeping things tight,
    provided there's no high cost in terms of code readability and correctness.
-   Let's say this is an experiment with M4. :)
 */
 
 
@@ -42,13 +41,13 @@
 
 // Word as in "binary word", not as in "english word"
 
-#define WORD unsigned int
+typedef unsigned int word_t; 
 
 typedef enum {
-    WT_1BYTE,
-    WT_2BYTE_LE,
-    WT_2BYTE_BE
-} WordType;
+    _1BYTE,
+    _2BYTE_LE,
+    _2BYTE_BE
+} Word_layout;
 
 
 // BUFFERED STREAM STRUCTURE DEFINITION AND INSTANCIATION
@@ -66,54 +65,54 @@ typedef struct {
     int buf_size;
     int buf_ptr;
     int eof;
-    WordType wordType;
+    Word_layout wordLayout;
 } Buffered_stream;
 
 
 // forward declarations
-static void read_stream_frame(Buffered_stream*);
-static WordType detect_buffer_word_type(Buffered_stream*);
+static inline void read_stream_frame(Buffered_stream*);
+static Word_layout detect_buffer_word_layout(Buffered_stream*);
 
 
-static inline void
+static void
 setup_base_buffered_stream(Buffered_stream* b, FILE* stream) {
     b->stream = stream;
     b->buf_size = BUFFERSIZE;
     b->eof = false;
 }
 
-static inline void
+static void
 setup_input_buffered_stream(Buffered_stream* b, FILE* stream) {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = BUFFERSIZE;
     read_stream_frame(b);
-    b->wordType = detect_buffer_word_type(b);
+    b->wordLayout = detect_buffer_word_layout(b);
 }
 
-static inline void
-setup_output_buffered_stream(Buffered_stream* b, FILE* stream, WordType wordType) {
+static void
+setup_output_buffered_stream(Buffered_stream* b, FILE* stream, Word_layout wordLayout) {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = 0;
-    b->wordType = wordType;
+    b->wordLayout = wordLayout;
 }
 
 
-// WORD TYPE DETECTION
+// WORD LAYOUT DETECTION
 // BOM based only for now
 // Precondition : expects the buffer to have been filled up with
 // the head of the stream data, and not have been read from yet.
 
-static inline WordType
-detect_buffer_word_type(Buffered_stream* b) {
+static Word_layout
+detect_buffer_word_layout(Buffered_stream* b) {
     if(b->buf_size >= 2) {
         if(b->buffer[0] == 0xFF && b->buffer[1] == 0xFE) {
-            return WT_2BYTE_LE;
+            return _2BYTE_LE;
         }
         if(b->buffer[0] == 0xFE && b->buffer[1] == 0xFF) {
-            return WT_2BYTE_BE;
+            return _2BYTE_BE;
         }
     }
-    return WT_1BYTE;
+    return _1BYTE;
 }
 
 
@@ -135,18 +134,18 @@ push_byte(BYTE value, Buffered_stream* b) {
 }
 
 static inline void
-push_utf8_word(WORD w, Buffered_stream* b) {
+push_utf8_word(word_t w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
 }
 
 static inline void
-push_utf16le_word(WORD w, Buffered_stream* b) {
+push_utf16le_word(word_t w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
     push_byte((w & 0x0000FF00) >> 8, b);
 }
 
 static inline void
-push_utf16be_word(WORD w, Buffered_stream* b) {
+push_utf16be_word(word_t w, Buffered_stream* b) {
     push_byte((w & 0x0000FF00) >> 8, b);
     push_byte(w & 0x000000FF, b);
 }
@@ -197,25 +196,25 @@ pull_byte(Buffered_stream* b) {
     }
 }
 
-static inline WORD
+static inline word_t
 pull_utf8_word(Buffered_stream *b) {
-    return (WORD) pull_byte(b);
+    return (word_t) pull_byte(b);
 }
 
-static inline WORD
+static inline word_t
 pull_utf16le_word(Buffered_stream *b) {
-    WORD b1, b2, w;
-    b1 = (WORD) pull_byte(b);
-    b2 = (WORD) pull_byte(b);
+    word_t b1, b2, w;
+    b1 = (word_t) pull_byte(b);
+    b2 = (word_t) pull_byte(b);
     w = b1 + (b2<<8);
     return w;
 }
 
-static inline WORD
+static inline word_t
 pull_utf16be_word(Buffered_stream *b) {
-    WORD b1, b2, w;
-    b1 = (WORD) pull_byte(b);
-    b2 = (WORD) pull_byte(b);
+    word_t b1, b2, w;
+    b1 = (word_t) pull_byte(b);
+    b2 = (word_t) pull_byte(b);
     w = (b1<<8) + b2;
     return w;
 }
@@ -224,7 +223,7 @@ pull_utf16be_word(Buffered_stream *b) {
 // LOOKING OUT FOR BINARY DATA IN A STREAM
 
 static inline bool
-is_non_text_char(WORD w) {
+is_non_text_char(word_t w) {
     return (w <= 8 || (w <= 31 && w >= 14));
 }
 
@@ -232,7 +231,7 @@ is_non_text_char(WORD w) {
 
 // MAIN CONVERSION LOOP
 
-void
+static void
 init_report(FileReport* report) {
     report->contains_non_text_chars=false;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
@@ -248,18 +247,18 @@ init_report(FileReport* report) {
 m4_define(`expand_processing_loop',
 
 `m4_ifelse($1, convert,
-`FileReport convert_$2( Buffered_stream* input_stream, 
+`static FileReport convert_$2( Buffered_stream* input_stream, 
                         Buffered_stream* output_stream,
                         Convention dst_convention,
                         bool interrupt_if_non_text) {',
 
-`FileReport check_$2( Buffered_stream* input_stream,
+`static FileReport check_$2( Buffered_stream* input_stream,
                       bool interrupt_if_non_text) {'
 )'
 
     FileReport report;
     init_report(&report);
-    WORD word;
+    word_t word;
     bool last_was_13 = false;
 
     while(true) {
@@ -295,7 +294,7 @@ m4_define(`expand_processing_loop',
 
     return report;
 }
-)
+) // end of M4's define
 
 
 expand_processing_loop(check,utf8)      // expands into a check_utf8 function
@@ -307,26 +306,30 @@ expand_processing_loop(convert,utf16be)
 
 
 FileReport
-engine_run(FILE* p_instream, FILE* p_outstream, Convention dst_convention, bool interrupt_if_non_text) {
+engine_run( FILE* p_instream,
+            FILE* p_outstream,
+            Convention dst_convention,
+            bool interrupt_if_non_text ) {
+
     Buffered_stream input_stream;
     setup_input_buffered_stream(&input_stream, p_instream);
 
     if(p_outstream) {
         Buffered_stream output_stream;
-        setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordType);
-        switch(input_stream.wordType) {
-            case WT_1BYTE:
+        setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordLayout);
+        switch(input_stream.wordLayout) {
+            case _1BYTE:
                 return convert_utf8(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
-            case WT_2BYTE_LE:
+            case _2BYTE_LE:
                 return convert_utf16le(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
-            case WT_2BYTE_BE:
+            case _2BYTE_BE:
                 return convert_utf16be(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
         }
     } else {
-        switch(input_stream.wordType) {
-            case WT_1BYTE:    return check_utf8(&input_stream, interrupt_if_non_text);
-            case WT_2BYTE_LE: return check_utf16le(&input_stream, interrupt_if_non_text);
-            case WT_2BYTE_BE: return check_utf16be(&input_stream, interrupt_if_non_text);
+        switch(input_stream.wordLayout) {
+            case _1BYTE:    return check_utf8(&input_stream, interrupt_if_non_text);
+            case _2BYTE_LE: return check_utf16le(&input_stream, interrupt_if_non_text);
+            case _2BYTE_BE: return check_utf16be(&input_stream, interrupt_if_non_text);
         }
     }
 }

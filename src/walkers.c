@@ -26,10 +26,10 @@
 
 Walk_tracker
 make_default_walk_tracker() {
-    Walk_tracker p = {
+    Walk_tracker wt = {
         DEFAULT_WALK_TRACKER_PARAMS
     };
-    return p;
+    return wt;
 }
 
 
