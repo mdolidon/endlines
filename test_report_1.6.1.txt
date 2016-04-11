@@ -5,8 +5,6 @@ cc -O3 -Wall -std=c99 -D_BSD_SOURCE   -c -o src/main.o src/main.c
 cc  src/walkers.o src/engine.o src/main.o -o endlines
 (cd test; ./runtest.sh)
 
-hash command : md5
-
 OK : oldmac output
 OK : windows output
 OK : unix output

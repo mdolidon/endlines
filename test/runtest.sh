@@ -11,15 +11,12 @@ else
     exit
 fi
 
-echo
-echo "hash command : $MD5"
-echo
-
 rm *test 2>/dev/null
 FAILURES=""
 
 chmod +rw *
 
+echo
 
 #
 # Part 1 : try various input/output combinations

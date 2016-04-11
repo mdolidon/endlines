@@ -134,18 +134,18 @@ push_byte(BYTE value, Buffered_stream* b) {
 }
 
 static inline void
-push_utf8_word(word_t w, Buffered_stream* b) {
+push_enc8_word(word_t w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
 }
 
 static inline void
-push_utf16le_word(word_t w, Buffered_stream* b) {
+push_enc16le_word(word_t w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
     push_byte((w & 0x0000FF00) >> 8, b);
 }
 
 static inline void
-push_utf16be_word(word_t w, Buffered_stream* b) {
+push_enc16be_word(word_t w, Buffered_stream* b) {
     push_byte((w & 0x0000FF00) >> 8, b);
     push_byte(w & 0x000000FF, b);
 }
@@ -165,9 +165,9 @@ push_$1_newline(Convention dst_convention, Buffered_stream* b) {
     }
 }
 )
-expand_push_newline(utf8)
-expand_push_newline(utf16le)
-expand_push_newline(utf16be)
+expand_push_newline(enc8)
+expand_push_newline(enc16le)
+expand_push_newline(enc16be)
 
 
 
@@ -197,12 +197,12 @@ pull_byte(Buffered_stream* b) {
 }
 
 static inline word_t
-pull_utf8_word(Buffered_stream *b) {
+pull_enc8_word(Buffered_stream *b) {
     return (word_t) pull_byte(b);
 }
 
 static inline word_t
-pull_utf16le_word(Buffered_stream *b) {
+pull_enc16le_word(Buffered_stream *b) {
     word_t b1, b2, w;
     b1 = (word_t) pull_byte(b);
     b2 = (word_t) pull_byte(b);
@@ -211,7 +211,7 @@ pull_utf16le_word(Buffered_stream *b) {
 }
 
 static inline word_t
-pull_utf16be_word(Buffered_stream *b) {
+pull_enc16be_word(Buffered_stream *b) {
     word_t b1, b2, w;
     b1 = (word_t) pull_byte(b);
     b2 = (word_t) pull_byte(b);
@@ -243,7 +243,7 @@ init_report(FileReport* report) {
 // Main loop generator macro
 // Parameters :
 // $1 : check or convert
-// $2 : utf8, utf16le or utf16be
+// $2 : enc8, enc16le or enc16be
 m4_define(`expand_processing_loop',
 
 `m4_ifelse($1, convert,
@@ -297,12 +297,12 @@ m4_define(`expand_processing_loop',
 ) // end of M4's define
 
 
-expand_processing_loop(check,utf8)      // expands into a check_utf8 function
-expand_processing_loop(check,utf16le)   // ... and so on
-expand_processing_loop(check,utf16be)
-expand_processing_loop(convert,utf8)
-expand_processing_loop(convert,utf16le)
-expand_processing_loop(convert,utf16be)
+expand_processing_loop(check,enc8)      // expands into a check_enc8 function
+expand_processing_loop(check,enc16le)   // ... and so on
+expand_processing_loop(check,enc16be)
+expand_processing_loop(convert,enc8)
+expand_processing_loop(convert,enc16le)
+expand_processing_loop(convert,enc16be)
 
 
 FileReport
@@ -319,17 +319,17 @@ engine_run( FILE* p_instream,
         setup_output_buffered_stream(&output_stream, p_outstream, input_stream.wordLayout);
         switch(input_stream.wordLayout) {
             case _1BYTE:
-                return convert_utf8(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
+                return convert_enc8(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
             case _2BYTE_LE:
-                return convert_utf16le(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
+                return convert_enc16le(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
             case _2BYTE_BE:
-                return convert_utf16be(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
+                return convert_enc16be(&input_stream, &output_stream, dst_convention, interrupt_if_non_text);
         }
     } else {
         switch(input_stream.wordLayout) {
-            case _1BYTE:    return check_utf8(&input_stream, interrupt_if_non_text);
-            case _2BYTE_LE: return check_utf16le(&input_stream, interrupt_if_non_text);
-            case _2BYTE_BE: return check_utf16be(&input_stream, interrupt_if_non_text);
+            case _1BYTE:    return check_enc8(&input_stream, interrupt_if_non_text);
+            case _2BYTE_LE: return check_enc16le(&input_stream, interrupt_if_non_text);
+            case _2BYTE_BE: return check_enc16be(&input_stream, interrupt_if_non_text);
         }
     }
 }
