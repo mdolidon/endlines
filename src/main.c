@@ -26,9 +26,9 @@
 #include <unistd.h>
 
 
- 
 
-// =============== LOCAL TYPES  =============== 
+
+// =============== LOCAL TYPES  ===============
 
 // Match a convention name as given on the command line to
 // the Convention enum type, defined in endlines.h
@@ -54,7 +54,7 @@ typedef struct {
 } CommandLine;
 
 
-// Possible outcomes for each file processed 
+// Possible outcomes for each file processed
 
 #define OUTCOMES_COUNT 4
 typedef enum {
@@ -67,7 +67,7 @@ typedef enum {
 
 // An accumulator that is passed around by the walkers, to the walkers_callback function
 // Its main use is to keep track of what has been done
-// It is complemented by the walkers' tracker object, defined in walkers.h, 
+// It is complemented by the walkers' tracker object, defined in walkers.h,
 // that'll hold results that are specific to the walker (e.g. skipped directories and hidden files)
 
 typedef struct {
@@ -79,7 +79,7 @@ typedef struct {
 
 
 
-// =============== ALL ABOUT CONVENTION NAMES =============== 
+// =============== ALL ABOUT CONVENTION NAMES ===============
 
 #define CL_NAMES_COUNT 11
 const cmd_line_args_to_convention cl_names[] = {
@@ -131,7 +131,7 @@ setup_conventions_display_names() {
 
 
 
-// =============== THE HELP AND VERSION SCREENS =============== 
+// =============== THE HELP AND VERSION SCREENS ===============
 
 void
 display_help_and_quit() {
@@ -167,7 +167,7 @@ display_version_and_quit() {
     fprintf(stderr, "\n   * endlines version %s \n"
 
                     "   * Copyright 2014-2016 Mathias Dolidon\n\n"
-    
+
                     "   Licensed under the Apache License, Version 2.0 (the \"License\"\n"
                     "   you may not use this file except in compliance with the License.\n"
                     "   You may obtain a copy of the License at\n\n"
@@ -187,7 +187,7 @@ display_version_and_quit() {
 
 
 
-// =============== PARSING COMMAND LINE OPTIONS =============== 
+// =============== PARSING COMMAND LINE OPTIONS ===============
 // Yes it's a huge and ugly switch
 
 CommandLine
@@ -367,7 +367,7 @@ convert_one_file(
 
 
 Outcome
-check_one_file(char* filename, struct stat* statinfo, CommandLine* cmd_line_args, FileReport* file_report) {
+check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
     if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
         return SKIPPED_BINARY;
     }
@@ -418,7 +418,7 @@ print_verbose_file_outcome(char * filename, Outcome outcome, Convention source_c
             fprintf(stderr, "endlines : %s -- %s\n",
                     convention_short_display_names[source_convention], filename);
             break;
-        case SKIPPED_BINARY: 
+        case SKIPPED_BINARY:
             fprintf(stderr, "endlines : skipped probable binary %s\n", filename);
             break;
         default: break;
@@ -429,12 +429,15 @@ void
 print_outcome_totals(bool dry_run,
                      int* count_by_convention, int done, int directories,
                      int binaries, int hidden, int errors) {
-    fprintf(stderr,  "\nendlines : %i file%s %s", done, done>1?"s":"", dry_run?"checked":"converted");
+    fprintf(stderr,  "\nendlines : %i file%s %s", done,
+            done>1?"s":"", dry_run?"checked":"converted");
+
     if(done) {
         fprintf(stderr, " %s :\n", dry_run?"; found":"from");
         for(int i=0; i<CONVENTIONS_COUNT; ++i) {
             if(count_by_convention[i]) {
-                fprintf(stderr, "              - %i %s\n",  count_by_convention[i], convention_display_names[i]);
+                fprintf(stderr, "              - %i %s\n",
+                        count_by_convention[i], convention_display_names[i]);
             }
         }
     } else {
@@ -442,16 +445,20 @@ print_outcome_totals(bool dry_run,
     }
 
     if(directories) {
-        fprintf(stderr, "           %i director%s skipped\n", directories, directories>1?"ies":"y");
+        fprintf(stderr, "           %i director%s skipped\n",
+                directories, directories>1?"ies":"y");
     }
     if(binaries) {
-        fprintf(stderr, "           %i binar%s skipped\n", binaries, binaries>1?"ies":"y");
+        fprintf(stderr, "           %i binar%s skipped\n",
+                binaries, binaries>1?"ies":"y");
     }
     if(hidden) {
-        fprintf(stderr, "           %i hidden file%s skipped\n", hidden, hidden>1?"s":"");
+        fprintf(stderr, "           %i hidden file%s skipped\n",
+                hidden, hidden>1?"s":"");
     }
     if(errors) {
-        fprintf(stderr, "           %i error%s\n", errors, errors>1?"s":"");
+        fprintf(stderr, "           %i error%s\n",
+                errors, errors>1?"s":"");
     }
     fprintf(stderr, "\n");
 }
@@ -464,7 +471,7 @@ walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
     Accumulator* accumulator = (Accumulator*) p_accumulator;
 
     if(accumulator->cmd_line_args->convention == NO_CONVENTION) {
-        outcome = check_one_file(filename, statinfo, accumulator->cmd_line_args, &file_report);
+        outcome = check_one_file(filename, accumulator->cmd_line_args, &file_report);
     } else {
         outcome = convert_one_file(filename, statinfo, accumulator->cmd_line_args, &file_report);
     }
@@ -492,7 +499,7 @@ make_accumulator(CommandLine* cmd_line_args) {
     return a;
 }
 
-Walk_tracker 
+Walk_tracker
 make_tracker(CommandLine* cmd_line_args, Accumulator* accumulator) {
     Walk_tracker t = make_default_walk_tracker(); // from walkers.h
     t.process_file = &walkers_callback;
@@ -512,7 +519,8 @@ convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
         if(cmd_line_args->convention == NO_CONVENTION) {
             fprintf(stderr, "endlines : dry run, scanning files\n");
         } else {
-            fprintf(stderr, "endlines : converting files to %s\n", convention_display_names[cmd_line_args->convention]);
+            fprintf(stderr, "endlines : converting files to %s\n",
+                    convention_display_names[cmd_line_args->convention]);
         }
     }
 
@@ -552,7 +560,8 @@ main(int argc, char**argv) {
             if(cmd_line_args.convention == NO_CONVENTION) {
                 fprintf(stderr, "endlines : dry run, scanning standard input\n");
             } else {
-                fprintf(stderr, "Converting standard input to %s\n", convention_display_names[cmd_line_args.convention]);
+                fprintf(stderr, "Converting standard input to %s\n",
+                        convention_display_names[cmd_line_args.convention]);
             }
         }
         engine_run(stdin, stdout, cmd_line_args.convention, false);
