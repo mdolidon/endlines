@@ -332,4 +332,12 @@ engine_run( FILE* p_instream,
             case _2BYTE_BE: return check_enc16be(&input_stream, interrupt_if_non_text);
         }
     }
+
+    // GCC complains here about reaching the end of the function
+    // because of it's lacking enum checks in the above switch statements
+    // The following lines will never be run, but are here to silence GCC's complaints.
+
+    FileReport report;
+    init_report(&report);
+    return report;
 }

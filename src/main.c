@@ -195,7 +195,7 @@ parse_cmd_line_args(int argc, char** argv) {
     CommandLine cmd_line_args = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
     .recurse=false, .process_hidden=false, .filenames=NULL, .file_count=0};
 
-    cmd_line_args.filenames = malloc(argc*sizeof(char*)); // will be marginally too big, we can live with that
+    cmd_line_args.filenames = malloc(argc*sizeof(char*));
     if(cmd_line_args.filenames == NULL) {
         fprintf(stderr, "Can't allocate memory\n");
         exit(1);
@@ -205,7 +205,6 @@ parse_cmd_line_args(int argc, char** argv) {
         if(i>1 && argv[i][0] != '-') {
             cmd_line_args.filenames[cmd_line_args.file_count] = argv[i];
             ++ cmd_line_args.file_count;
-            continue;
         } else if(!strcmp(argv[i], "--help")) {
             display_help_and_quit();
         } else if(!strcmp(argv[i], "--version")) {
@@ -237,15 +236,6 @@ parse_cmd_line_args(int argc, char** argv) {
 
 
 // =============== CONVERTING OR CHECKING ONE FILE ===============
-
-Outcome
-get_file_stats(char* filename, struct stat* statinfo) {
-    if(stat(filename, statinfo)) {
-        fprintf(stderr, "endlines : can not read %s\n", filename);
-        return SKIPPED_ERROR;
-    }
-    return CAN_CONTINUE;
-}
 
 struct utimbuf
 get_file_times(struct stat* statinfo) {
@@ -339,19 +329,21 @@ has_known_binary_file_extension(char* filename) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 
 Outcome
-convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
+convert_one_file(
+        char* filename,
+        struct stat* statinfo,
+        CommandLine* cmd_line_args,
+        FileReport* file_report) {
 
     if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
         return SKIPPED_BINARY;
     }
 
-    struct stat statinfo;
     Outcome partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
 
-    TRY get_file_stats(filename, &statinfo); CATCH
-    struct utimbuf original_file_times = get_file_times(&statinfo);
+    struct utimbuf original_file_times = get_file_times(statinfo);
     TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
 
     FileReport report = engine_run(in, out, cmd_line_args->convention, !cmd_line_args->binaries);
@@ -365,7 +357,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_re
         return SKIPPED_BINARY;
     }
 
-    TRY move_temp_file_to_destination(filename, &statinfo); CATCH
+    TRY move_temp_file_to_destination(filename, statinfo); CATCH
 
     if(cmd_line_args->keepdate) {
         utime(filename, &original_file_times);
@@ -375,7 +367,7 @@ convert_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_re
 
 
 Outcome
-check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
+check_one_file(char* filename, struct stat* statinfo, CommandLine* cmd_line_args, FileReport* file_report) {
     if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
         return SKIPPED_BINARY;
     }
@@ -465,16 +457,16 @@ print_outcome_totals(bool dry_run,
 }
 
 void
-walkers_callback(char* filename, void* p_accumulator) {
+walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
     Outcome outcome;
     FileReport file_report;
     Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
 
     if(accumulator->cmd_line_args->convention == NO_CONVENTION) {
-        outcome = check_one_file(filename, accumulator->cmd_line_args, &file_report);
+        outcome = check_one_file(filename, statinfo, accumulator->cmd_line_args, &file_report);
     } else {
-        outcome = convert_one_file(filename, accumulator->cmd_line_args, &file_report);
+        outcome = convert_one_file(filename, statinfo, accumulator->cmd_line_args, &file_report);
     }
 
     source_convention = get_source_convention(&file_report);

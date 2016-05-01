@@ -39,15 +39,15 @@ make_default_walk_tracker() {
         //
 
 static void
-found_a_file_that_needs_processing(char* filename, Walk_tracker* tracker) {
+found_a_file_that_needs_processing(char* filename, struct stat* statinfo, Walk_tracker* tracker) {
             ++ tracker->processed_count;
-            tracker->process_file(filename, tracker->accumulator);
+            tracker->process_file(filename, statinfo, tracker->accumulator);
 }
 
 static void
 skip_a_hidden_file(char* filename, Walk_tracker* tracker) {
     if(tracker->verbose) {
-        fprintf(stderr, "%s : skipping hidden file : %s\n", WALKERS_PROGNAME, filename);
+        fprintf(stderr, "%s : skipped hidden file : %s\n", WALKERS_PROGNAME, filename);
     }
     ++ tracker->skipped_hidden_files_count;
 }
@@ -64,7 +64,7 @@ found_a_directory(char* filename, Walk_tracker* tracker) {
         walk_directory(filename, tracker);
     } else {
         if(tracker->verbose) {
-            fprintf(stderr, "%s : skipping directory : %s\n", WALKERS_PROGNAME, filename);
+            fprintf(stderr, "%s : skipped directory : %s\n", WALKERS_PROGNAME, filename);
         }
         ++ tracker->skipped_directories_count;
     }
@@ -126,7 +126,7 @@ walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
         } else if(S_ISDIR(statinfo.st_mode)) {
             found_a_directory(filenames[i], tracker);
         } else if(S_ISREG(statinfo.st_mode)) {
-            found_a_file_that_needs_processing(filenames[i], tracker);
+            found_a_file_that_needs_processing(filenames[i], &statinfo, tracker);
         }
     }
 }
@@ -186,8 +186,6 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
 
     // setting up a path buffer that we'll update with the successive paths of the files we'll iterate upon
     char file_path_buffer[WALKERS_MAX_PATH_LENGTH];
-    char* fake_filenames_array[1];              // this holder is a convenience
-    fake_filenames_array[0] = file_path_buffer; // to avoid juggling pointer forms
     DIR* pdir;
 
     int dirname_length = strlen(directory_name);
@@ -205,13 +203,14 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
         if(append_filename_to_base_path(file_path_buffer, dirname_length, pent->d_name)) {
             continue;
         }
-        if(pent->d_name[0] == '.' && tracker->skip_hidden ) {
-            skip_a_hidden_file(file_path_buffer, tracker);
-        } else if(pent->d_type == DT_DIR) {
-            found_a_directory(file_path_buffer, tracker);
-        } else if(pent->d_type == DT_REG) {
-            found_a_file_that_needs_processing(file_path_buffer, tracker);
-        }
+//        if(pent->d_name[0] == '.' && tracker->skip_hidden ) {
+//            skip_a_hidden_file(file_path_buffer, tracker);
+//            continue;
+//        } 
+        
+        char* single_filename_array[1];              // this holder is a convenience
+        single_filename_array[0] = file_path_buffer; // to avoid juggling pointer forms
+        walk_filenames(single_filename_array, 1, tracker);
     }
     closedir(pdir);
 };

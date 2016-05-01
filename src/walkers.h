@@ -28,6 +28,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/stat.h>
 
 //
 // The walkers : walk_filenames and walk_directory.
@@ -45,7 +46,8 @@
 //                  It gets called for all regular file items.
 //                  It gets called with two parameters :
 //     1/ a char* to the relative file name
-//     2/ a void* to the walk's accumulator. What the accumulator is is left up to the client.
+//     2/ a struct stat* with the file's stat info
+//     3/ a void* to the walk's accumulator. What the accumulator is is left up to the client.
 //       It carries data over from call to call, and can be incrementally modified.
 //
 // - recurse : call walk_directory automatically when a subdirectory is found.
@@ -55,7 +57,7 @@
 
 typedef struct {
     // options
-    void (*process_file)(char*, void*);
+    void (*process_file)(char*, struct stat*, void*);
     void* accumulator;
     bool verbose;
     bool recurse;
