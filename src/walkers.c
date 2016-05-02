@@ -201,6 +201,10 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
     }
 
     // iterating over its contents
+    // This used to take advantage of BSD's improved dirent type,
+    // but I've reversed to using d_name only and pass the rest to walk_filenames
+    // in order to be POSIX compliant.
+   
     struct dirent *pent;
     while((pent = readdir(pdir)) != NULL) {
         reset_base_path_termination(file_path_buffer, dirname_length);
