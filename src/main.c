@@ -246,7 +246,7 @@ get_file_times(struct stat* statinfo) {
 }
 
 Outcome
-open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
+open_files(FILE** in, char* in_filename, FILE** out) {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
         fprintf(stderr, "endlines : can not read %s\n", in_filename);
@@ -259,7 +259,7 @@ open_files(FILE** in, char* in_filename, FILE** out, char* out_filename) {
     }
     *out = fopen(TMP_FILENAME, "wb");
     if(*out == NULL) {
-        fprintf(stderr, "endlines : can not create %s\n", out_filename);
+        fprintf(stderr, "endlines : can not create %s\n", TMP_FILENAME);
         fclose(*in);
         return SKIPPED_ERROR;
     }
@@ -344,7 +344,7 @@ convert_one_file(
     FILE *out = NULL;
 
     struct utimbuf original_file_times = get_file_times(statinfo);
-    TRY open_files(&in, filename, &out, TMP_FILENAME); CATCH
+    TRY open_files(&in, filename, &out); CATCH
 
     FileReport report = engine_run(in, out, cmd_line_args->convention, !cmd_line_args->binaries);
     memcpy(file_report, &report, sizeof(FileReport));
