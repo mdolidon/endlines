@@ -13,7 +13,7 @@ endlines: $(OBJECTS)
 	$(CC) -c $(CFLAGS) -o $@
 
 src/engine.c: src/engine.c.m4
-	$(M4) -P src/engine.c.m4 > src/engine.c
+	$(M4) src/engine.c.m4 > src/engine.c
 
 clean:
 	rm src/*.o src/engine.c endlines

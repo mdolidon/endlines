@@ -150,7 +150,7 @@ push_enc16be_word(word_t w, Buffered_stream* b) {
     push_byte(w & 0x000000FF, b);
 }
 
-m4_define(expand_push_newline,
+/* M4 */ define(expand_push_newline,
 static inline void
 push_$1_newline(Convention dst_convention, Buffered_stream* b) {
     switch(dst_convention) {
@@ -244,9 +244,9 @@ init_report(FileReport* report) {
 // Parameters :
 // $1 : check or convert
 // $2 : enc8, enc16le or enc16be
-m4_define(`expand_processing_loop',
+/* M4 */ define(`expand_processing_loop',
 
-`m4_ifelse($1, convert,
+`/* M4 */ ifelse($1, convert,
 `static FileReport convert_$2( Buffered_stream* input_stream, 
                         Buffered_stream* output_stream,
                         Convention dst_convention,
@@ -273,12 +273,12 @@ m4_define(`expand_processing_loop',
             }
         }
         if(word == 13) {
-            `m4_ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
+            `/* M4 */ ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(word == 10) {
             if(!last_was_13) {
-                `m4_ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
+                `/* M4 */ ifelse($1, `convert', `push_$2_newline(dst_convention, output_stream);')'
                 ++ report.count_by_convention[LF];
             } else {
                 -- report.count_by_convention[CR];
@@ -286,11 +286,11 @@ m4_define(`expand_processing_loop',
             }
             last_was_13 = false;
         } else {
-            `m4_ifelse($1, `convert', push_$2`_word(word, output_stream);')'
+            `/* M4 */ ifelse($1, `convert', push_$2`_word(word, output_stream);')'
             last_was_13 = false;
         }
     }
-    `m4_ifelse($1, convert, `flush_buffer(output_stream);')'
+    `/* M4 */ ifelse($1, convert, `flush_buffer(output_stream);')'
 
     return report;
 }
