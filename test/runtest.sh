@@ -5,10 +5,10 @@ then
     MD5=md5
 elif [ -n "`command -v md5sum`" ]
 then
-    MD5=md5sum
+    MD5=md5sum 
 elif [ -n "`command -v csum`" ]
 then
-    MD5=csum
+    MD5="csum - " 
 else
     echo "No MD5 hash command found, can't run tests."
     exit

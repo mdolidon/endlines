@@ -7,10 +7,10 @@ OBJECTS=$(BODIES:.c=.o)
 all: $(BODIES) $(HEADERS) endlines
 
 endlines: $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
 
-.o:
-	$(CC) -c $(CFLAGS) -o $@
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
 
 src/engine.c: src/engine.c.m4
 	$(M4) src/engine.c.m4 > src/engine.c
