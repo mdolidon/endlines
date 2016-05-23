@@ -66,6 +66,6 @@ Linux and other POSIX users just download the repository and type `sudo make ins
 Operating systems
 -----------------
 
-I provide support for **Linux, all BSDs and OSX**. Any POSIX compliant system should be supported out of the box.
+Endlines is known to have been compiled and run on Apple OSX, several Linux distributions, and IBM AIX. I will provide support for any POSIX compliant system.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
