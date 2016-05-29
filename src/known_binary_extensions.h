@@ -23,7 +23,7 @@
 // Only the extensions we're most likely to encounter inside the
 // kind of project that also host a lot of text data : source code,
 // web project etc.
-#define KNOWN_BINARY_EXTENSIONS_COUNT 161
+#define KNOWN_BINARY_EXTENSIONS_COUNT 163
 char
 *known_binary_file_extensions[] = {
     // images
@@ -50,8 +50,8 @@ char
 
     
     // office
-    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pub", "pubx",
-    "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "PUB", "PUBX",
+    "doc", "docx", "xls", "xlsx", "xlsm", "ppt", "pptx", "pub", "pubx",
+    "DOC", "DOCX", "XLS", "XLSX", "XLSM", "PPT", "PPTX", "PUB", "PUBX",
 
     "dotx", "odt", "sxw", "odp", "sxi", "stw", "sdd",
     "DOTX", "ODT", "SXW", "ODP", "SXI", "STW", "SDD",

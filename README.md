@@ -8,8 +8,8 @@ Endlines smartly converts text files from and to the following line ending conve
     endlines unix * 
 
 - No need to know about the source files' convention. Multiple conventions can be mixed within a single file.
-- Straightforward syntax for multiple files and recursion into directories. Hidden files and directories can either be avoided or processed (you don't want to mess with your `.git`, do you ?)
-- Binary files will be detected and skipped by default, according to a filter based on both file extension and file content. This can be overriden of course.
+- Straightforward syntax for multiple files and recursion into directories. Hidden files and directories are skipped by default (you don't want to mess with your `.git`, do you ?)
+- Binary files will be detected and skipped by default, according to a filter based on both file extension and file content.
 - Files' last access and last modified time stamps can be preserved.
 - UTF-8 files, UTF-16 with BOM as well as all single byte encodings will be treated well. However, UTF-32 is not supported (files will be seen as binary and left untouched).
 - Whether converting or checking, a report is given on the original state of line endings that were found.
@@ -66,6 +66,6 @@ Linux and other POSIX users just download the repository and type `sudo make ins
 Operating systems
 -----------------
 
-I provide support for **Linux, all BSDs and OSX**. Any POSIX compliant system should be supported out of the box.
+Endlines is known to have been compiled and run out of the box on Apple OSX, several Linux distributions and IBM AIX. I provide support for all POSIX compliant operating sytems.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
