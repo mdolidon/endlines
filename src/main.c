@@ -284,7 +284,17 @@ move_temp_file_to_destination(char* filename, struct stat *statinfo) {
         remove(TMP_FILENAME);
         return SKIPPED_ERROR;
     }
-    rename(TMP_FILENAME, filename);
+    err = rename(TMP_FILENAME, filename);
+    if(err) {
+        fprintf(stderr, "endlines : can not restore %s\n"
+                        "  -- Fail safe reaction : aborting.\n"
+                        "  -- You will find your data in %s\n"
+                        "  -- Please rename it manually to %s\n"
+                        "  -- You may report this occurence at :\n"
+                        "     https://github.com/mdolidon/endlines/issues/12\n",
+                filename, TMP_FILENAME, filename);
+        exit(1);
+    }
     err = chmod(filename, statinfo->st_mode);
     if(err) {
         fprintf(stderr, "endlines : could not restore permissions for %s\n", filename);
