@@ -142,7 +142,7 @@ static int
 append_filename_to_base_path(char* base_path, int base_path_length, char* filename) {
     size_t filename_length = strlen(filename);
     size_t total_length = base_path_length + filename_length + 1; // +1 for a slash
-    if(total_length+1 > WALKERS_MAX_PATH_LENGTH) {                // +1 for the terminating 0
+    if(total_length >= WALKERS_MAX_PATH_LENGTH) {                // +1 for the terminating 0
         fprintf(stderr, "%s : pathname exceeding maximum length : %s/%s\n",
                 WALKERS_PROGNAME, base_path, filename);
         return 1;
@@ -154,6 +154,29 @@ append_filename_to_base_path(char* base_path, int base_path_length, char* filena
     } else {
         strcpy(&(base_path[base_path_length]), filename);
     }
+    return 0;
+}
+
+
+int
+make_filename_in_same_location(char* reference_name_and_path, char* wanted_name, char* destination) {
+    int reflen = strlen(reference_name_and_path);
+    if(reflen>=WALKERS_MAX_PATH_LENGTH) {
+        fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
+                WALKERS_PROGNAME, reference_name_and_path);
+        return 1;
+    }
+    strcpy(destination, reference_name_and_path);
+    int filename_start;
+    for(filename_start=reflen; filename_start>0; filename_start--) {
+        if(destination[filename_start]=='/') {
+            filename_start ++;
+            break;
+        }
+    }
+    // TODO add max len control
+
+    strcpy(&(destination[filename_start]), wanted_name);
     return 0;
 }
 

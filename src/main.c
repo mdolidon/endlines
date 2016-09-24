@@ -246,7 +246,7 @@ get_file_times(struct stat* statinfo) {
 }
 
 Outcome
-open_files(FILE** in, char* in_filename, FILE** out) {
+open_files(FILE** in, char* in_filename, FILE** out, char* tmp_filename) {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
         fprintf(stderr, "endlines : can not read %s\n", in_filename);
@@ -257,9 +257,9 @@ open_files(FILE** in, char* in_filename, FILE** out) {
         fclose(*in);
         return SKIPPED_ERROR;
     }
-    *out = fopen(TMP_FILENAME, "wb");
+    *out = fopen(tmp_filename, "wb");
     if(*out == NULL) {
-        fprintf(stderr, "endlines : can not create %s\n", TMP_FILENAME);
+        fprintf(stderr, "endlines : can not create %s\n", tmp_filename);
         fclose(*in);
         return SKIPPED_ERROR;
     }
@@ -277,22 +277,22 @@ open_input_file_for_dry_run(FILE** in, char* in_filename) {
 }
 
 Outcome
-move_temp_file_to_destination(char* filename, struct stat *statinfo) {
+move_temp_file_to_destination(char* tmp_filename, char* filename, struct stat *statinfo) {
     int err = remove(filename);
     if(err) {
         fprintf(stderr, "endlines : can not write over %s\n", filename);
-        remove(TMP_FILENAME);
+        remove(tmp_filename);
         return SKIPPED_ERROR;
     }
-    err = rename(TMP_FILENAME, filename);
+    err = rename(tmp_filename, filename);
     if(err) {
         fprintf(stderr, "endlines : can not restore %s\n"
                         "  -- Fail safe reaction : aborting.\n"
                         "  -- You will find your data in %s\n"
                         "  -- Please rename it manually to %s\n"
                         "  -- You may report this occurence at :\n"
-                        "     https://github.com/mdolidon/endlines/issues/12\n",
-                filename, TMP_FILENAME, filename);
+                        "     https://github.com/mdolidon/endlines/issues\n",
+                filename, tmp_filename, filename);
         exit(1);
     }
     err = chmod(filename, statinfo->st_mode);
@@ -352,9 +352,11 @@ convert_one_file(
     Outcome partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
+    char tmp_filename[WALKERS_MAX_PATH_LENGTH];
+    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
 
     struct utimbuf original_file_times = get_file_times(statinfo);
-    TRY open_files(&in, filename, &out); CATCH
+    TRY open_files(&in, filename, &out, tmp_filename); CATCH
 
     FileReport report = engine_run(in, out, cmd_line_args->convention, !cmd_line_args->binaries);
     memcpy(file_report, &report, sizeof(FileReport));
@@ -363,11 +365,11 @@ convert_one_file(
     fclose(out);
 
     if(report.contains_non_text_chars && !cmd_line_args->binaries) {
-        remove(TMP_FILENAME);
+        remove(tmp_filename);
         return SKIPPED_BINARY;
     }
 
-    TRY move_temp_file_to_destination(filename, statinfo); CATCH
+    TRY move_temp_file_to_destination(tmp_filename, filename, statinfo); CATCH
 
     if(cmd_line_args->keepdate) {
         utime(filename, &original_file_times);
