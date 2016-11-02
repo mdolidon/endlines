@@ -26,7 +26,7 @@
 // one of these three values.
 
 
-#define VERSION "1.6.4"
+#define VERSION "1.6.5"
 #define BUFFERSIZE 16384
 #define TMP_FILENAME ".tmp_endlines"
 
@@ -64,6 +64,11 @@ typedef enum {
 } Convention;
 
 
+
+
+
+
+
 // Reports from the conversion function to the caller
 typedef struct {
     bool contains_non_text_chars;
@@ -71,12 +76,19 @@ typedef struct {
 } FileReport;
 
 
+
+typedef struct {
+    FILE* instream;
+    FILE* outstream;
+    Convention dst_convention;
+    bool interrupt_if_not_like_dst_convention;
+    bool interrupt_if_non_text;
+} ConversionParameters;
+
+
 // This function means business.
 // It is exported by engine.c
 FileReport
-engine_run( FILE* p_instream,
-            FILE* p_outstream,
-            Convention dst_convention,
-            bool interrupt_if_non_text );
+convert_stream(ConversionParameters p);
 
 #endif

@@ -245,8 +245,9 @@ get_file_times(struct stat* statinfo) {
     return file_times;
 }
 
+
 Outcome
-open_files(FILE** in, char* in_filename, FILE** out, char* tmp_filename) {
+open_input_file_for_conversion(FILE** in, char* in_filename) {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
         fprintf(stderr, "endlines : can not read %s\n", in_filename);
@@ -257,10 +258,14 @@ open_files(FILE** in, char* in_filename, FILE** out, char* tmp_filename) {
         fclose(*in);
         return SKIPPED_ERROR;
     }
+    return CAN_CONTINUE;
+}
+
+Outcome
+open_temporary_file(FILE** out, char* tmp_filename) {
     *out = fopen(tmp_filename, "wb");
     if(*out == NULL) {
         fprintf(stderr, "endlines : can not create %s\n", tmp_filename);
-        fclose(*in);
         return SKIPPED_ERROR;
     }
     return CAN_CONTINUE;
@@ -332,82 +337,6 @@ has_known_binary_file_extension(char* filename) {
 }
 
 
-
-// Main conversion (resp. checking) handlers
-
-#define TRY partial_status =
-#define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
-
-Outcome
-convert_one_file(
-        char* filename,
-        struct stat* statinfo,
-        CommandLine* cmd_line_args,
-        FileReport* file_report) {
-
-    if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
-        return SKIPPED_BINARY;
-    }
-
-    Outcome partial_status;
-    FILE *in  = NULL;
-    FILE *out = NULL;
-    char tmp_filename[WALKERS_MAX_PATH_LENGTH];
-    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
-
-    struct utimbuf original_file_times = get_file_times(statinfo);
-    TRY open_files(&in, filename, &out, tmp_filename); CATCH
-
-    FileReport report = engine_run(in, out, cmd_line_args->convention, !cmd_line_args->binaries);
-    memcpy(file_report, &report, sizeof(FileReport));
-
-    fclose(in);
-    fclose(out);
-
-    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
-        remove(tmp_filename);
-        return SKIPPED_BINARY;
-    }
-
-    TRY move_temp_file_to_destination(tmp_filename, filename, statinfo); CATCH
-
-    if(cmd_line_args->keepdate) {
-        utime(filename, &original_file_times);
-    }
-    return DONE;
-}
-
-
-Outcome
-check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
-    if(!cmd_line_args->binaries && has_known_binary_file_extension(filename)) {
-        return SKIPPED_BINARY;
-    }
-
-    Outcome partial_status;
-    FILE *in  = NULL;
-    TRY open_input_file_for_dry_run(&in, filename); CATCH
-
-    FileReport report = engine_run(in, NULL, NO_CONVENTION, !cmd_line_args->binaries);
-    memcpy(file_report, &report, sizeof(FileReport));
-
-    fclose(in);
-    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
-        return SKIPPED_BINARY;
-    }
-
-    return DONE;
-}
-
-#undef TRY
-#undef CATCH
-
-
-
-
-
-// =============== HANDLING A CONVERSION BATCH ===============
-
 Convention
 get_source_convention(FileReport* file_report) {
     Convention c = NO_CONVENTION;
@@ -422,6 +351,126 @@ get_source_convention(FileReport* file_report) {
     }
     return c;
 }
+
+
+// Main conversion (resp. checking) handlers
+
+#define TRY partial_status =
+#define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
+#define CATCH_CLOSE_IN if(partial_status != CAN_CONTINUE) { fclose(in); return partial_status; }
+
+Outcome
+pre_conversion_check(
+        FILE* in,
+        FileReport* file_report,
+        CommandLine* cmd_line_args) {
+
+    ConversionParameters p = {
+        .instream=in,
+        .outstream=NULL,
+        .dst_convention=NO_CONVENTION,
+        .interrupt_if_not_like_dst_convention=true,
+        .interrupt_if_non_text=!cmd_line_args->binaries
+    };
+
+    FileReport preliminary_report = convert_stream(p);
+
+    if(preliminary_report.contains_non_text_chars && !cmd_line_args->binaries) {
+        fclose(in);
+        return SKIPPED_BINARY;
+    }
+    Convention src_convention = get_source_convention(&preliminary_report);
+    if(src_convention == NO_CONVENTION || src_convention == cmd_line_args->convention) {
+        fclose(in);
+        memcpy(file_report, &preliminary_report, sizeof(FileReport));
+        return DONE;
+    }
+    return CAN_CONTINUE;
+}
+
+
+Outcome
+convert_one_file(
+        char* filename,
+        struct stat* statinfo,
+        CommandLine* cmd_line_args,
+        FileReport* file_report) {
+
+
+    Outcome partial_status;
+    FILE *in  = NULL;
+    FILE *out = NULL;
+    char tmp_filename[WALKERS_MAX_PATH_LENGTH];
+    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
+
+    struct utimbuf original_file_times = get_file_times(statinfo);
+
+    TRY open_input_file_for_conversion(&in, filename); CATCH
+    TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH
+    rewind(in);
+    TRY open_temporary_file(&out, tmp_filename); CATCH_CLOSE_IN
+
+    ConversionParameters p = {
+        .instream=in,
+        .outstream=out,
+        .dst_convention=cmd_line_args->convention,
+        .interrupt_if_not_like_dst_convention=false,
+        .interrupt_if_non_text=!cmd_line_args->binaries
+    };
+    FileReport report = convert_stream(p);
+
+    fclose(in);
+    fclose(out);
+
+    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
+        remove(tmp_filename);
+        return SKIPPED_BINARY;
+    }
+
+    TRY move_temp_file_to_destination(tmp_filename, filename, statinfo); CATCH
+
+    if(cmd_line_args->keepdate) {
+        utime(filename, &original_file_times);
+    }
+
+    memcpy(file_report, &report, sizeof(FileReport));
+    return DONE;
+}
+
+
+Outcome
+check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
+    Outcome partial_status;
+    FILE *in  = NULL;
+    TRY open_input_file_for_dry_run(&in, filename); CATCH
+
+    ConversionParameters p = {
+        .instream=in,
+        .outstream=NULL,
+        .dst_convention=NO_CONVENTION,
+        .interrupt_if_not_like_dst_convention=false,
+        .interrupt_if_non_text=!cmd_line_args->binaries
+    };
+    FileReport report = convert_stream(p);
+
+    fclose(in);
+    if(report.contains_non_text_chars && !cmd_line_args->binaries) {
+        return SKIPPED_BINARY;
+    }
+
+    memcpy(file_report, &report, sizeof(FileReport));
+    return DONE;
+}
+
+#undef TRY
+#undef CATCH
+
+
+
+
+
+// =============== HANDLING A CONVERSION BATCH ===============
+
 
 void
 print_verbose_file_outcome(char * filename, Outcome outcome, Convention source_convention) {
@@ -467,8 +516,7 @@ print_outcome_totals(bool dry_run,
     if(hidden) {
         fprintf(stderr, "           %i hidden file%s skipped\n",
                 hidden, hidden>1?"s":"");
-    }
-    if(errors) {
+    } if(errors) {
         fprintf(stderr, "           %i error%s\n",
                 errors, errors>1?"s":"");
     }
@@ -482,7 +530,10 @@ walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
     Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
 
-    if(accumulator->cmd_line_args->convention == NO_CONVENTION) {
+    if(!accumulator->cmd_line_args->binaries &&
+            has_known_binary_file_extension(filename)) {
+        outcome = SKIPPED_BINARY;
+    } else if(accumulator->cmd_line_args->convention == NO_CONVENTION) {
         outcome = check_one_file(filename, accumulator->cmd_line_args, &file_report);
     } else {
         outcome = convert_one_file(filename, statinfo, accumulator->cmd_line_args, &file_report);
@@ -576,7 +627,13 @@ main(int argc, char**argv) {
                         convention_display_names[cmd_line_args.convention]);
             }
         }
-        engine_run(stdin, stdout, cmd_line_args.convention, false);
+        ConversionParameters p = {
+            .instream=stdin,
+            .outstream=stdout,
+            .dst_convention=cmd_line_args.convention,
+            .interrupt_if_non_text=false
+        };
+        convert_stream(p);
     }
     return 0;
 }

@@ -267,9 +267,9 @@ fi
 cp unixref timetest
 touch -t 200001010000 timetest
 ORIGINALTIME=`ls -l timetest`
-../endlines unix -k timetest 2>/dev/null >/dev/null
+../endlines cr -k timetest 2>/dev/null >/dev/null
 KEEPTIME=`ls -l timetest`
-../endlines unix timetest 2>/dev/null >/dev/null
+../endlines lf timetest 2>/dev/null >/dev/null
 CHNGTIME=`ls -l timetest`
 if [[ ($ORIGINALTIME == $KEEPTIME) && ($ORIGINALTIME != $CHNGTIME) ]]
 then
@@ -278,9 +278,6 @@ else
     echo "FAILURE : a file time was changed when it shouldn't, or kept when it shouldn't"
     FAILURES="yes"
 fi
-
-
-
 
 #
 # Part 4 : multiple files...
@@ -351,7 +348,8 @@ chmod +w nowritetest
 
 touch .tmp_endlines
 chmod -w .tmp_endlines
-../endlines unix unixref 2>notemptest >/dev/null
+cp unixref dummy
+../endlines win dummy 2>notemptest >/dev/null
 NOTEMP=`cat notemptest`
 if [[ $NOTEMP == *"can not create"* ]]
 then
@@ -362,7 +360,7 @@ else
 fi
 chmod +w .tmp_endlines
 rm .tmp_endlines
-
+rm dummy
 
 
 
