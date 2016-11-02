@@ -1,4 +1,4 @@
-| Version 1.6.4 | Apache License 2.0 |
+| Version 1.6.5 | Apache License 2.0 |
 | ----------------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 

@@ -1,7 +1,3 @@
-cc -O3 -Wall -std=c99 -c src/walkers.c -o src/walkers.o
-m4 src/engine.c.m4 > src/engine.c
-cc -O3 -Wall -std=c99 -c src/engine.c -o src/engine.o
-cc -O3 -Wall -std=c99 -c src/main.c -o src/main.o
 cc  -o endlines src/walkers.o src/engine.o src/main.o
 (cd test; ./runtest.sh)
 
