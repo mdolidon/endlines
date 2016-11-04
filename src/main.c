@@ -278,13 +278,15 @@ convert_one_file(
     FILE *in  = NULL;
     FILE *out = NULL;
     char tmp_filename[WALKERS_MAX_PATH_LENGTH];
-    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
 
     struct utimbuf original_file_times = get_file_times(statinfo);
 
     TRY open_input_file_for_conversion(&in, filename); CATCH
+
     TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH_CLOSE_IN
+
     rewind(in);
+    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
     TRY open_temporary_file(&out, tmp_filename); CATCH_CLOSE_IN
 
     ConversionParameters p = {
@@ -394,7 +396,8 @@ print_outcome_totals(bool dry_run,
     if(hidden) {
         fprintf(stderr, "           %i hidden file%s skipped\n",
                 hidden, hidden>1?"s":"");
-    } if(errors) {
+    }
+    if(errors) {
         fprintf(stderr, "           %i error%s\n",
                 errors, errors>1?"s":"");
     }
