@@ -1,4 +1,4 @@
-cc  -o endlines src/walkers.o src/engine.o src/main.o
+cc  -o endlines src/file_operations.o src/walkers.o src/convert_stream.o src/main.o src/utils.o
 (cd test; ./runtest.sh)
 
 OK : oldmac output
@@ -10,6 +10,8 @@ OK : empty file passes
 OK : UTF-8
 OK : UTF-16 Little Endian
 OK : UTF-16 Big Endian
+OK : does not rewrite a file that is already in the target convention
+OK : identifies mixed conventions as needing conversion
 OK : large file processing
 OK : reacts to an unknown convention
 OK : quietens down with -q
