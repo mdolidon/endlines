@@ -21,6 +21,12 @@ chmod +rw *
 
 echo
 
+
+
+
+
+
+
 #
 # Part 1 : try various input/output combinations
 #
@@ -170,6 +176,39 @@ fi
 rm utf16betest
 
 
+
+
+
+cp unixref notouchtest
+touch -t 200001010000 notouchtest
+NOTOUCH=`ls -l notouchtest`
+../endlines unix notouchtest 2>/dev/null >/dev/null
+NOTOUCH_CHECK=`ls -l notouchtest`
+if [[ ($NOTOUCH == $NOTOUCH_CHECK)  ]]
+then
+    echo "OK : does not rewrite a file that is already in the target convention"
+else
+    echo "FAILURE : a file was rewritten although it did not need to be converted"
+    FAILURES="yes"
+fi
+
+
+cp lf_then_crlf_ref lf_then_crlf_test
+touch -t 200001010000 lf_then_crlf_test
+LFUNTOUCHED=`ls -l lf_then_crlf_test`
+../endlines unix lf_then_crlf_test 2>/dev/null >/dev/null
+LFTOUCHED=`ls -l lf_then_crlf_test`
+if [[ ($LFUNTOUCHED != $LFTOUCHED)  ]]
+then
+    echo "OK : identifies mixed conventions as needing conversion"
+else
+    echo "FAILURE : a file with mixed conventions was misidentified as already in target convention"
+    FAILURES="yes"
+fi
+
+
+
+
 #
 # Part 2 : large files, testing the buffers' integrity
 #
@@ -192,6 +231,12 @@ else
     echo "FAILURE : large file processing ; buffered access mechanism may be damaged"
     FAILURES="yes"
 fi
+
+
+
+
+
+
 
 
 
@@ -279,6 +324,13 @@ else
     FAILURES="yes"
 fi
 
+
+
+
+
+
+
+
 #
 # Part 4 : multiple files...
 #
@@ -300,6 +352,11 @@ else
     FAILURES="yes"
 fi
 rmdir dummydir
+
+
+
+
+
 
 
 

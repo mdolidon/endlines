@@ -247,7 +247,7 @@ pre_conversion_check(
     ConversionParameters p = {
         .instream=in,
         .outstream=NULL,
-        .dst_convention=NO_CONVENTION,
+        .dst_convention=cmd_line_args->convention,
         .interrupt_if_not_like_dst_convention=true,
         .interrupt_if_non_text=!cmd_line_args->binaries
     };
