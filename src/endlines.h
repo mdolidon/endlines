@@ -76,7 +76,6 @@ typedef struct {
 } FileReport;
 
 
-
 typedef struct {
     FILE* instream;
     FILE* outstream;
@@ -90,5 +89,10 @@ typedef struct {
 // It is exported by engine.c
 FileReport
 convert_stream(ConversionParameters p);
+
+
+// Functions declared in utils.c
+bool has_known_binary_file_extension(char*);
+Convention get_source_convention(FileReport*);
 
 #endif

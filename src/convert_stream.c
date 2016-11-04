@@ -82,7 +82,7 @@ setup_output_buffered_stream(Buffered_stream* b, FILE* stream, Word_layout wordL
 // Precondition : expects the buffer to have been filled up with
 // the head of the stream data, and not have been read from yet.
 
-static inline Word_layout
+static Word_layout
 detect_buffer_word_layout(Buffered_stream* b) {
     if(b->buf_size >= 2) {
         if(b->buffer[0] == 0xFF && b->buffer[1] == 0xFE) {
@@ -135,6 +135,9 @@ push_word(word_t w, Buffered_stream* b) {
                 push_byte((w & 0x0000FF00) >> 8, b);
                 push_byte(w & 0x000000FF, b);
                 break;
+        default:
+            fprintf(stderr, "endlines : convert_stream.push_word called on a stream with an unknown word layout ; aborting !\n");
+            exit(8);
         }
     }
 }
@@ -201,6 +204,9 @@ pull_word(Buffered_stream *b) {
             b2 = (word_t) pull_byte(b);
             w = (b1<<8) + b2;
             return w;
+        default:
+            fprintf(stderr, "endlines : convert_stream.pull_word called on a stream with an unknown word layout ; aborting !\n");
+            exit(8);
     }
 }
 

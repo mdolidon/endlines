@@ -1,6 +1,6 @@
 M4=m4
 CFLAGS= -O3 -Wall -std=c99
-BODIES=src/walkers.c src/engine.c src/main.c
+BODIES=src/file_operations.c src/walkers.c src/convert_stream.c src/main.c src/utils.c
 HEADERS=src/endlines.h src/walkers.h src/known_binary_extensions.h
 OBJECTS=$(BODIES:.c=.o)
 

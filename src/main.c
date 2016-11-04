@@ -18,7 +18,7 @@
 
 #include "endlines.h"
 #include "walkers.h"
-#include "known_binary_extensions.h"
+#include "file_operations.h"
 
 #include <string.h>
 #include <sys/stat.h>
@@ -54,15 +54,6 @@ typedef struct {
 } CommandLine;
 
 
-// Possible outcomes for each file processed
-
-#define OUTCOMES_COUNT 4
-typedef enum {
-    CAN_CONTINUE,  // intermediate state : no error yet, but processing not finished
-    DONE,
-    SKIPPED_BINARY,
-    SKIPPED_ERROR,
-} Outcome;
 
 
 // An accumulator that is passed around by the walkers, to the walkers_callback function
@@ -71,7 +62,7 @@ typedef enum {
 // that'll hold results that are specific to the walker (e.g. skipped directories and hidden files)
 
 typedef struct {
-    int outcome_totals[OUTCOMES_COUNT];
+    int outcome_totals[FILEOP_STATUSES_COUNT];
     int convention_totals[CONVENTIONS_COUNT];
     CommandLine* cmd_line_args;
 } Accumulator;
@@ -237,120 +228,8 @@ parse_cmd_line_args(int argc, char** argv) {
 
 // =============== CONVERTING OR CHECKING ONE FILE ===============
 
-struct utimbuf
-get_file_times(struct stat* statinfo) {
-    struct utimbuf file_times;
-    file_times.actime = statinfo->st_atime;
-    file_times.modtime = statinfo->st_mtime;
-    return file_times;
-}
 
 
-Outcome
-open_input_file_for_conversion(FILE** in, char* in_filename) {
-    *in = fopen(in_filename, "rb");
-    if(*in == NULL) {
-        fprintf(stderr, "endlines : can not read %s\n", in_filename);
-        return SKIPPED_ERROR;
-    }
-    if(access(in_filename, W_OK)) {
-        fprintf(stderr, "endlines : can not write over %s\n", in_filename);
-        fclose(*in);
-        return SKIPPED_ERROR;
-    }
-    return CAN_CONTINUE;
-}
-
-Outcome
-open_temporary_file(FILE** out, char* tmp_filename) {
-    *out = fopen(tmp_filename, "wb");
-    if(*out == NULL) {
-        fprintf(stderr, "endlines : can not create %s\n", tmp_filename);
-        return SKIPPED_ERROR;
-    }
-    return CAN_CONTINUE;
-}
-
-Outcome
-open_input_file_for_dry_run(FILE** in, char* in_filename) {
-    *in = fopen(in_filename, "rb");
-    if(*in == NULL) {
-        fprintf(stderr, "endlines : can not read %s\n", in_filename);
-        return SKIPPED_ERROR;
-    }
-    return CAN_CONTINUE;
-}
-
-Outcome
-move_temp_file_to_destination(char* tmp_filename, char* filename, struct stat *statinfo) {
-    int err = remove(filename);
-    if(err) {
-        fprintf(stderr, "endlines : can not write over %s\n", filename);
-        remove(tmp_filename);
-        return SKIPPED_ERROR;
-    }
-    err = rename(tmp_filename, filename);
-    if(err) {
-        fprintf(stderr, "endlines : can not restore %s\n"
-                        "  -- Fail safe reaction : aborting.\n"
-                        "  -- You will find your data in %s\n"
-                        "  -- Please rename it manually to %s\n"
-                        "  -- You may report this occurence at :\n"
-                        "     https://github.com/mdolidon/endlines/issues\n",
-                filename, tmp_filename, filename);
-        exit(1);
-    }
-    err = chmod(filename, statinfo->st_mode);
-    if(err) {
-        fprintf(stderr, "endlines : could not restore permissions for %s\n", filename);
-    }
-    err = chown(filename, statinfo->st_uid, statinfo->st_gid);
-    if(err) {
-        fprintf(stderr, "endlines : could not restore ownership for %s\n", filename);
-    }
-
-    return CAN_CONTINUE;
-}
-
-char*
-get_file_extension(char* name) {
-    char* extension = name + strlen(name);
-    while(*extension != '.' && *extension != '/' && extension != name) {
-        -- extension;
-    }
-    if(*extension == '/' || extension == name) {
-        return "";
-    } else {
-        return extension+1;
-    }
-}
-
-bool
-has_known_binary_file_extension(char* filename) {
-    char* ext = get_file_extension(filename);
-    for(int i=0; i<KNOWN_BINARY_EXTENSIONS_COUNT; i++) {
-        if( !strcmp(ext, known_binary_file_extensions[i]) ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-Convention
-get_source_convention(FileReport* file_report) {
-    Convention c = NO_CONVENTION;
-    for(int i=0; i<CONVENTIONS_COUNT; i++) {
-        if(file_report->count_by_convention[i] > 0) {
-            if(c == NO_CONVENTION) {
-                c = (Convention)i;
-            } else {
-                c = MIXED;
-            }
-        }
-    }
-    return c;
-}
 
 
 // Main conversion (resp. checking) handlers
@@ -359,7 +238,7 @@ get_source_convention(FileReport* file_report) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 #define CATCH_CLOSE_IN if(partial_status != CAN_CONTINUE) { fclose(in); return partial_status; }
 
-Outcome
+FileOp_Status
 pre_conversion_check(
         FILE* in,
         FileReport* file_report,
@@ -376,12 +255,10 @@ pre_conversion_check(
     FileReport preliminary_report = convert_stream(p);
 
     if(preliminary_report.contains_non_text_chars && !cmd_line_args->binaries) {
-        fclose(in);
         return SKIPPED_BINARY;
     }
     Convention src_convention = get_source_convention(&preliminary_report);
     if(src_convention == NO_CONVENTION || src_convention == cmd_line_args->convention) {
-        fclose(in);
         memcpy(file_report, &preliminary_report, sizeof(FileReport));
         return DONE;
     }
@@ -389,7 +266,7 @@ pre_conversion_check(
 }
 
 
-Outcome
+FileOp_Status
 convert_one_file(
         char* filename,
         struct stat* statinfo,
@@ -397,7 +274,7 @@ convert_one_file(
         FileReport* file_report) {
 
 
-    Outcome partial_status;
+    FileOp_Status partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
     char tmp_filename[WALKERS_MAX_PATH_LENGTH];
@@ -406,7 +283,7 @@ convert_one_file(
     struct utimbuf original_file_times = get_file_times(statinfo);
 
     TRY open_input_file_for_conversion(&in, filename); CATCH
-    TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH
+    TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH_CLOSE_IN
     rewind(in);
     TRY open_temporary_file(&out, tmp_filename); CATCH_CLOSE_IN
 
@@ -438,9 +315,9 @@ convert_one_file(
 }
 
 
-Outcome
+FileOp_Status
 check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_report) {
-    Outcome partial_status;
+    FileOp_Status partial_status;
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
 
@@ -454,6 +331,7 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
     FileReport report = convert_stream(p);
 
     fclose(in);
+
     if(report.contains_non_text_chars && !cmd_line_args->binaries) {
         return SKIPPED_BINARY;
     }
@@ -473,7 +351,7 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
 
 
 void
-print_verbose_file_outcome(char * filename, Outcome outcome, Convention source_convention) {
+print_verbose_file_outcome(char * filename, FileOp_Status outcome, Convention source_convention) {
     switch(outcome) {
         case DONE:
             fprintf(stderr, "endlines : %s -- %s\n",
@@ -525,7 +403,7 @@ print_outcome_totals(bool dry_run,
 
 void
 walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
-    Outcome outcome;
+    FileOp_Status outcome;
     FileReport file_report;
     Convention source_convention;
     Accumulator* accumulator = (Accumulator*) p_accumulator;
@@ -552,7 +430,7 @@ walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
 Accumulator
 make_accumulator(CommandLine* cmd_line_args) {
     Accumulator a;
-    for(int i=0; i<OUTCOMES_COUNT; ++i) {
+    for(int i=0; i<FILEOP_STATUSES_COUNT; ++i) {
         a.outcome_totals[i] = 0;
     }
     for(int i=0; i<CONVENTIONS_COUNT; ++i) {
@@ -596,7 +474,7 @@ convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
                              tracker.skipped_directories_count,
                              accumulator.outcome_totals[SKIPPED_BINARY],
                              tracker.skipped_hidden_files_count,
-                             accumulator.outcome_totals[SKIPPED_ERROR] + tracker.read_errors_count
+                             accumulator.outcome_totals[FILEOP_ERROR] + tracker.read_errors_count
         );
     }
 }
