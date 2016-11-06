@@ -40,10 +40,10 @@ fi
 chmod +w sandbox/nowritetest
 
 
-touch .tmp_endlines
-chmod -w .tmp_endlines
-cp data/unixref dummy
-$ENDLINES win dummy 2>sandbox/notemptest >/dev/null
+touch sandbox/.tmp_endlines
+chmod -w sandbox/.tmp_endlines
+cp data/unixref sandbox/dummy
+$ENDLINES win sandbox/dummy 2>sandbox/notemptest >/dev/null
 NOTEMP=`cat sandbox/notemptest`
 if [[ $NOTEMP == *"can not create"* ]]
 then
@@ -52,7 +52,5 @@ else
     echo "FAILURE : didn't mention unability to create temporary file"
     ./case_failed.sh
 fi
-chmod +w .tmp_endlines
-rm .tmp_endlines
-rm dummy
-
+chmod +w sandbox/.tmp_endlines
+rm sandbox/.tmp_endlines

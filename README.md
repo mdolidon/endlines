@@ -71,7 +71,9 @@ Endlines is known to have been compiled and run out of the box on Apple OSX, sev
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
 
 
-Users of previous versions
---------------------------
+News
+---------------
 
 Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose.
+
+Currently `endlines` is not safe for concurrent launches over the same set of files, because of its temporary file policy. 1.8 will bring in concurrency support.
