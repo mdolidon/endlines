@@ -1,5 +1,10 @@
+cc -O3 -Wall -std=c99 -c src/file_operations.c -o src/file_operations.o
+cc -O3 -Wall -std=c99 -c src/walkers.c -o src/walkers.o
+cc -O3 -Wall -std=c99 -c src/convert_stream.c -o src/convert_stream.o
+cc -O3 -Wall -std=c99 -c src/main.c -o src/main.o
+cc -O3 -Wall -std=c99 -c src/utils.c -o src/utils.o
 cc  -o endlines src/file_operations.o src/walkers.o src/convert_stream.o src/main.o src/utils.o
-(cd test; ./runtest.sh)
+(cd test; bash runtest.sh)
 
 OK : oldmac output
 OK : windows output
@@ -20,7 +25,10 @@ OK : option -b forces conversion of binaries
 OK : skips binaries with known extension without reading contents
 OK : option -b forces conversion of binaries with known extension
 OK : option -k preserves the file's modification time
-OK : multiple files
+OK : multiple files directly on command line
+OK : finding regular files in subdirectories with -r
+OK : hidden files and directories were not affected by -r
+OK : hidden files and directories processed with -r -h
 OK : notifies the user if a file can't be opened
 OK : notifies the user if a file can't be read
 OK : notifies the user if a file is write protected

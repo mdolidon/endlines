@@ -1,4 +1,4 @@
-| Version 1.6.6 | Apache License 2.0 |
+| Version 1.7 | Apache License 2.0 |
 | ----------------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -69,3 +69,9 @@ Operating systems
 Endlines is known to have been compiled and run out of the box on Apple OSX, several Linux distributions and IBM AIX. I provide support for all POSIX compliant operating sytems.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
+
+
+Users of previous versions
+--------------------------
+
+Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade.
