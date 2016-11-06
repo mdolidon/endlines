@@ -166,16 +166,25 @@ make_filename_in_same_location(char* reference_name_and_path, char* wanted_name,
                 WALKERS_PROGNAME, reference_name_and_path);
         return 1;
     }
-    strcpy(destination, reference_name_and_path);
-    int filename_start;
-    for(filename_start=reflen; filename_start>0; filename_start--) {
-        if(destination[filename_start]=='/') {
+
+    int filename_start = reflen;
+    while(filename_start > 0) {
+        filename_start --;
+        if(reference_name_and_path[filename_start]=='/') {
             filename_start ++;
             break;
         }
     }
-    // TODO add max len control
 
+    int wanted_length = strlen(wanted_name);
+    if(wanted_length + filename_start + 1 >= WALKERS_MAX_PATH_LENGTH) {
+        fprintf(stderr, "%s : pathname exceeding maximum length : %s on %s\n",
+                WALKERS_PROGNAME, wanted_name, reference_name_and_path);
+        return 1;
+    }
+
+
+    strcpy(destination, reference_name_and_path);
     strcpy(&(destination[filename_start]), wanted_name);
     return 0;
 }

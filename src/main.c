@@ -286,7 +286,11 @@ convert_one_file(
     TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH_CLOSE_IN
 
     rewind(in);
-    make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
+    int tmp_path_err = make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
+    if(tmp_path_err) {
+        fclose(in);
+        return FILEOP_ERROR;
+    }
     TRY open_temporary_file(&out, tmp_filename); CATCH_CLOSE_IN
 
     ConversionParameters p = {

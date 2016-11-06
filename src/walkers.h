@@ -24,7 +24,7 @@
 // so I chose to uncleanly set it here.
 #define WALKERS_PROGNAME "endlines"
 
-#define WALKERS_MAX_PATH_LENGTH 1025
+#define WALKERS_MAX_PATH_LENGTH 1024 
 
 #include <stdbool.h>
 #include <stddef.h>
