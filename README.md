@@ -74,4 +74,4 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 Users of previous versions
 --------------------------
 
-Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade.
+Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose.
