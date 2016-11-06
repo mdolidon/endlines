@@ -24,6 +24,7 @@ else
     exit
 fi
 
+mkdir sandbox &>/dev/null
 chmod +r data/*
 chmod +w data/*
 chmod +rx cases/*
