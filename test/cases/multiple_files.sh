@@ -2,11 +2,12 @@
 ./clean_sandbox.sh
 
 
-mkdir dummydir
+mkdir sandbox/dummydir
+cp data/unixref sandbox/dummydir/donttouch
 cp data/unixref sandbox/multi1test
 cp data/unixref sandbox/multi2test
 cp data/unixref sandbox/multi3test
-$ENDLINES win -q dummydir nonexistent sandbox/multi1test sandbox/multi2test sandbox/multi3test 2>/dev/null
+$ENDLINES win -q sandbox/dummydir nonexistent sandbox/multi1test sandbox/multi2test sandbox/multi3test 2>/dev/null
 
 WINREF=`$MD5<data/winref`
 MULTIONE=`$MD5<sandbox/multi1test`
@@ -19,8 +20,20 @@ else
     echo "FAILURE : failure to handle multiple files directly on command line"
     ./case_failed.sh
 fi
-rmdir dummydir
 
+
+
+DONTTOUCH=`$MD5<sandbox/dummydir/donttouch`
+
+if [[ "$DONTTOUCH" != "$WINREF" ]]
+then
+    echo "OK : did not go into subdirectories when -r wasn't given"
+else
+    echo "FAILURE : went into a subdirectory although -r wasn not given"
+    ./case_failed.sh
+fi
+
+rm -r sandbox/dummydir
 
 
 

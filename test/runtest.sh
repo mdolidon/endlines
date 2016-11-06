@@ -25,15 +25,16 @@ else
 fi
 
 mkdir sandbox &>/dev/null
-chmod +r data/*
-chmod +w data/*
+chmod +rw data/*
 chmod +rx cases/*
-chmod +x case_failed.sh
-chmod +x clean_sandbox.sh
+chmod +rx case_failed.sh
+chmod +rx clean_sandbox.sh
 
 ./clean_sandbox.sh
 
-echo "">failures
+
+rm failures &>/dev/null
+touch failures
 
 
 echo
@@ -51,7 +52,6 @@ cases/multiple_files.sh
 cases/failure_notifications.sh
 
 
-
 ./clean_sandbox.sh
 
 echo
@@ -59,7 +59,7 @@ if [[ -z "`cat failures`" ]]
 then
     echo "All tests succeeded"
 else
-    echo "** FAILURES OCCURED **"
+    awk 'END{if(NR>1){S="S"} else {S=""}; print "** " NR " FAILURE" S " OCCURED **"}' failures
 fi
 
 rm failures
