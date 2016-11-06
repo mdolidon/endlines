@@ -19,4 +19,4 @@ install: endlines
 	mv endlines /usr/local/bin/endlines
 
 test: endlines
-	(cd test; ./runtest.sh)
+	(cd test; bash runtest.sh)
