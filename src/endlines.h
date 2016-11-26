@@ -16,21 +16,17 @@
    limitations under the License.
 */
 
-#ifndef _ENDLINES_H
+#ifndef _ENDLINES_H_
 #define _ENDLINES_H_
-
-
 
 
 // If you have something to configure, it's probably
 // one of these three values.
 
 
-#define VERSION "1.7"
+#define VERSION "1.8"
 #define BUFFERSIZE 16384
-#define TMP_FILENAME ".tmp_endlines"
-
-
+#define TMP_FILENAME_BASE ".tmp_endlines_"
 
 
 
@@ -40,6 +36,11 @@
 // - common includes
 // - common type definitions
 // - function definitions
+
+
+/* Give us access to high resolution time functions in time.h */
+#define _XOPEN_SOURCE 500
+
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -65,12 +66,9 @@ typedef enum {
 
 
 
-
-
-
-
 // Reports from the conversion function to the caller
 typedef struct {
+    bool error_during_conversion;
     bool contains_non_text_chars;
     unsigned int count_by_convention[CONVENTIONS_COUNT];
 } FileReport;

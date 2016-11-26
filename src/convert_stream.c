@@ -44,7 +44,7 @@ typedef struct {
     BYTE buffer[BUFFERSIZE];
     int buf_size;
     int buf_ptr;
-    int eof;
+    bool eof;
     Word_layout wordLayout;
 } Buffered_stream;
 
@@ -101,63 +101,75 @@ detect_buffer_word_layout(Buffered_stream* b) {
 // b->stream is allowed to contain a null-pointer ; this is used when
 // checking files, and lets the loop be written only once.
 
-static inline void
+// writing operations return true if an error occured
+static inline bool
 flush_buffer(Buffered_stream* b) {
     if(b->stream) {
-        fwrite(b->buffer, 1, b->buf_ptr, b->stream);
+        size_t nb_bytes_to_write = (size_t)b->buf_ptr;
+        size_t nb_bytes_written = fwrite(b->buffer, 1, nb_bytes_to_write, b->stream);
+        if(nb_bytes_to_write != nb_bytes_written) {
+            return true;
+        }
         b->buf_ptr = 0;
     }
+    return false;
 }
 
-static inline void
+static inline bool
 push_byte(BYTE value, Buffered_stream* b) {
+    bool err = false;
     b->buffer[b->buf_ptr] = value;
     ++ b->buf_ptr;
     if(b->buf_ptr == b->buf_size) {
-        flush_buffer(b);
+        err = flush_buffer(b);
     }
+    return err;
 }
 
 
 // function pointer was 20% slower than a big switch
-static inline void
+static inline bool
 push_word(word_t w, Buffered_stream* b) {
+    bool err = false;
     if(b->stream) {
         switch(b->wordLayout) {
             case WT_1BYTE:
-                push_byte(w & 0x000000FF, b);
+                err = err || push_byte( (w & 0x000000FF), b);
                 break;
             case WT_2BYTE_LE:
-                push_byte(w & 0x000000FF, b);
-                push_byte((w & 0x0000FF00) >> 8, b);
+                err = err || push_byte( (w & 0x000000FF), b);
+                err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
                 break;
             case WT_2BYTE_BE:
-                push_byte((w & 0x0000FF00) >> 8, b);
-                push_byte(w & 0x000000FF, b);
+                err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
+                err = err || push_byte( (w & 0x000000FF), b);
                 break;
         default:
             fprintf(stderr, "endlines : convert_stream.push_word called on a stream with an unknown word layout ; aborting !\n");
-            exit(8);
+            exit(EXIT_FAILURE);
         }
     }
+    return err;
 }
 
-static inline void
+static inline bool
 push_newline(Convention convention, Buffered_stream* b) {
+    bool err = false;
     switch(convention) {
         case CR:   
-            push_word(13, b);
+            err = err || push_word(13, b);
             break;
         case LF:
-            push_word(10, b);
+            err = err || push_word(10, b);
             break;
         case CRLF:
-            push_word(13, b);
-            push_word(10, b);
+            err = err || push_word(13, b);
+            err = err || push_word(10, b);
             break;
         default:
             break;
     }
+    return err;
 }
 
 
@@ -206,7 +218,7 @@ pull_word(Buffered_stream *b) {
             return w;
         default:
             fprintf(stderr, "endlines : convert_stream.pull_word called on a stream with an unknown word layout ; aborting !\n");
-            exit(8);
+            exit(EXIT_FAILURE);
     }
 }
 
@@ -225,7 +237,8 @@ is_non_text_char(word_t w) {
 
 static inline void
 init_report(FileReport* report) {
-    report->contains_non_text_chars=false;
+    report->error_during_conversion = false;
+    report->contains_non_text_chars = false;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
         report->count_by_convention[i] = 0;
     }
@@ -233,6 +246,8 @@ init_report(FileReport* report) {
 
 FileReport
 convert_stream(ConversionParameters p) {
+
+    bool err = false;
 
     Buffered_stream input_stream;
     setup_input_buffered_stream(&input_stream, p.instream);
@@ -258,12 +273,12 @@ convert_stream(ConversionParameters p) {
             }
         }
         if(word == 13) {
-            push_newline(p.dst_convention, &output_stream);
+            err = push_newline(p.dst_convention, &output_stream);
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
         } else if(word == 10) {
             if(!last_was_13) {
-                push_newline(p.dst_convention, &output_stream);
+                err = push_newline(p.dst_convention, &output_stream);
                 ++ report.count_by_convention[LF];
                 if(p.interrupt_if_not_like_dst_convention && p.dst_convention != LF) {
                     break;
@@ -277,10 +292,18 @@ convert_stream(ConversionParameters p) {
             }
             last_was_13 = false;
         } else {
-            push_word(word, &output_stream);
+            err = push_word(word, &output_stream);
             last_was_13 = false;
         }
+        if(err) {
+            break;
+        }
     }
-    flush_buffer(&output_stream);
+    err = err || flush_buffer(&output_stream);
+
+    if(ferror(p.instream)) {
+        err = true;
+    }
+    report.error_during_conversion = err;
     return report;
 }

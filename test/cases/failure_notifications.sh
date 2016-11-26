@@ -40,17 +40,21 @@ fi
 chmod +w sandbox/nowritetest
 
 
-touch sandbox/.tmp_endlines
-chmod -w sandbox/.tmp_endlines
-cp data/unixref sandbox/dummy
-$ENDLINES win sandbox/dummy 2>sandbox/notemptest >/dev/null
-NOTEMP=`cat sandbox/notemptest`
-if [[ $NOTEMP == *"can not create"* ]]
-then
-    echo "OK : notifies the user if the temporary file can not be created"
-else
-    echo "FAILURE : didn't mention unability to create temporary file"
-    ./case_failed.sh
-fi
-chmod +w sandbox/.tmp_endlines
-rm sandbox/.tmp_endlines
+
+## This test has been disabled when implementing the new
+## temporary file name policy.
+
+# touch sandbox/.tmp_endlines
+# chmod -w sandbox/.tmp_endlines
+# cp data/unixref sandbox/dummy
+# $ENDLINES win sandbox/dummy 2>sandbox/notemptest >/dev/null
+# NOTEMP=`cat sandbox/notemptest`
+# if [[ $NOTEMP == *"can not create"* ]]
+# then
+#     echo "OK : notifies the user if the temporary file can not be created"
+# else
+#     echo "FAILURE : didn't mention unability to create temporary file"
+#     ./case_failed.sh
+# fi
+# chmod +w sandbox/.tmp_endlines
+# rm sandbox/.tmp_endlines

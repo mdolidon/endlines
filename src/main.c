@@ -16,12 +16,14 @@
    limitations under the License.
 */
 
+
 #include "endlines.h"
 #include "walkers.h"
 #include "file_operations.h"
 
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <utime.h>
 #include <unistd.h>
 
@@ -219,6 +221,11 @@ parse_cmd_line_args(int argc, char** argv) {
             exit(4);
         }
     }
+
+    if(cmd_line_args.file_count == 0) {
+        free(cmd_line_args.filenames);
+    }
+
     return cmd_line_args;
 }
 
@@ -238,9 +245,18 @@ parse_cmd_line_args(int argc, char** argv) {
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 #define CATCH_CLOSE_IN if(partial_status != CAN_CONTINUE) { fclose(in); return partial_status; }
 
+void
+initialize_session_tmp_filename(char* session_tmp_filename) {
+    struct timespec res;
+    clock_gettime(CLOCK_REALTIME, &res);
+    int suffix = res.tv_nsec % 9999999;
+    sprintf(session_tmp_filename, "%s%d", TMP_FILENAME_BASE, suffix);
+}
+
 FileOp_Status
 pre_conversion_check(
         FILE* in,
+        char* filename,
         FileReport* file_report,
         CommandLine* cmd_line_args) {
 
@@ -253,6 +269,11 @@ pre_conversion_check(
     };
 
     FileReport preliminary_report = convert_stream(p);
+
+    if(preliminary_report.error_during_conversion) {
+        fprintf(stderr, "endlines : file access error during preliminary check of %s\n", filename);
+        return FILEOP_ERROR;
+    }
 
     if(preliminary_report.contains_non_text_chars && !cmd_line_args->binaries) {
         return SKIPPED_BINARY;
@@ -277,21 +298,24 @@ convert_one_file(
     FileOp_Status partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
-    char tmp_filename[WALKERS_MAX_PATH_LENGTH];
-
+    
+    static char session_tmp_filename[40] = "";
+    char local_tmp_file_name[WALKERS_MAX_PATH_LENGTH];
     struct utimbuf original_file_times = get_file_times(statinfo);
 
+    if(!strlen(session_tmp_filename)) {
+        initialize_session_tmp_filename(session_tmp_filename);
+    }
+
     TRY open_input_file_for_conversion(&in, filename); CATCH
-
-    TRY pre_conversion_check(in, file_report, cmd_line_args); CATCH_CLOSE_IN
-
+    TRY pre_conversion_check(in, filename, file_report, cmd_line_args); CATCH_CLOSE_IN
     rewind(in);
-    int tmp_path_err = make_filename_in_same_location(filename, TMP_FILENAME, tmp_filename);
+    int tmp_path_err = make_filename_in_same_location(filename, session_tmp_filename, local_tmp_file_name);
     if(tmp_path_err) {
         fclose(in);
         return FILEOP_ERROR;
     }
-    TRY open_temporary_file(&out, tmp_filename); CATCH_CLOSE_IN
+    TRY open_temporary_file(&out, local_tmp_file_name); CATCH_CLOSE_IN
 
     ConversionParameters p = {
         .instream=in,
@@ -305,12 +329,16 @@ convert_one_file(
     fclose(in);
     fclose(out);
 
+    if(report.error_during_conversion) {
+        fprintf(stderr, "endlines : file access error during conversion of %s\n", filename);
+        return FILEOP_ERROR;
+    }
     if(report.contains_non_text_chars && !cmd_line_args->binaries) {
-        remove(tmp_filename);
+        remove(local_tmp_file_name);
         return SKIPPED_BINARY;
     }
 
-    TRY move_temp_file_to_destination(tmp_filename, filename, statinfo); CATCH
+    TRY move_temp_file_to_destination(local_tmp_file_name, filename, statinfo); CATCH
 
     if(cmd_line_args->keepdate) {
         utime(filename, &original_file_times);
@@ -356,6 +384,16 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
 // =============== HANDLING A CONVERSION BATCH ===============
 
 
+typedef struct {
+    bool dry_run;
+    int *count_by_convention;  // array
+    int done;
+    int directories;
+    int binaries;
+    int hidden;
+    int errors;
+} Outcome_totals_for_display;
+
 void
 print_verbose_file_outcome(char * filename, FileOp_Status outcome, Convention source_convention) {
     switch(outcome) {
@@ -370,40 +408,40 @@ print_verbose_file_outcome(char * filename, FileOp_Status outcome, Convention so
     }
 }
 
-void
-print_outcome_totals(bool dry_run,
-                     int* count_by_convention, int done, int directories,
-                     int binaries, int hidden, int errors) {
-    fprintf(stderr,  "\nendlines : %i file%s %s", done,
-            done>1?"s":"", dry_run?"checked":"converted");
 
-    if(done) {
-        fprintf(stderr, " %s :\n", dry_run?"; found":"from");
+
+void
+print_outcome_totals(Outcome_totals_for_display t) {
+    fprintf(stderr,  "\nendlines : %i file%s %s", t.done,
+            t.done>1?"s":"", t.dry_run?"checked":"converted");
+
+    if(t.done) {
+        fprintf(stderr, " %s :\n", t.dry_run?"; found":"from");
         for(int i=0; i<CONVENTIONS_COUNT; ++i) {
-            if(count_by_convention[i]) {
+            if(t.count_by_convention[i]) {
                 fprintf(stderr, "              - %i %s\n",
-                        count_by_convention[i], convention_display_names[i]);
+                        t.count_by_convention[i], convention_display_names[i]);
             }
         }
     } else {
         fprintf(stderr, "\n");
     }
 
-    if(directories) {
+    if(t.directories) {
         fprintf(stderr, "           %i director%s skipped\n",
-                directories, directories>1?"ies":"y");
+                t.directories, t.directories>1?"ies":"y");
     }
-    if(binaries) {
+    if(t.binaries) {
         fprintf(stderr, "           %i binar%s skipped\n",
-                binaries, binaries>1?"ies":"y");
+                t.binaries, t.binaries>1?"ies":"y");
     }
-    if(hidden) {
+    if(t.hidden) {
         fprintf(stderr, "           %i hidden file%s skipped\n",
-                hidden, hidden>1?"s":"");
+                t.hidden, t.hidden>1?"s":"");
     }
-    if(errors) {
+    if(t.errors) {
         fprintf(stderr, "           %i error%s\n",
-                errors, errors>1?"s":"");
+                t.errors, t.errors>1?"s":"");
     }
     fprintf(stderr, "\n");
 }
@@ -450,6 +488,7 @@ make_accumulator(CommandLine* cmd_line_args) {
 Walk_tracker
 make_tracker(CommandLine* cmd_line_args, Accumulator* accumulator) {
     Walk_tracker t = make_default_walk_tracker(); // from walkers.h
+
     t.process_file = &walkers_callback;
     t.accumulator = accumulator;
     t.verbose = cmd_line_args->verbose;
@@ -459,7 +498,7 @@ make_tracker(CommandLine* cmd_line_args, Accumulator* accumulator) {
 }
 
 void
-convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
+convert_files(CommandLine* cmd_line_args)  {
     Accumulator accumulator = make_accumulator(cmd_line_args);
     Walk_tracker tracker = make_tracker(cmd_line_args, &accumulator);
 
@@ -475,14 +514,16 @@ convert_files(int argc, char ** argv, CommandLine* cmd_line_args)  {
     walk_filenames(cmd_line_args->filenames, cmd_line_args->file_count, &tracker);
 
     if(!cmd_line_args->quiet) {
-        print_outcome_totals(cmd_line_args->convention == NO_CONVENTION,
-                             accumulator.convention_totals,
-                             accumulator.outcome_totals[DONE],
-                             tracker.skipped_directories_count,
-                             accumulator.outcome_totals[SKIPPED_BINARY],
-                             tracker.skipped_hidden_files_count,
-                             accumulator.outcome_totals[FILEOP_ERROR] + tracker.read_errors_count
-        );
+        Outcome_totals_for_display totals = {
+            .dry_run     = (cmd_line_args->convention == NO_CONVENTION),
+            .count_by_convention = accumulator.convention_totals,
+            .done        = accumulator.outcome_totals[DONE],
+            .directories = tracker.skipped_directories_count,
+            .binaries    = accumulator.outcome_totals[SKIPPED_BINARY],
+            .hidden      = tracker.skipped_hidden_files_count,
+            .errors      = accumulator.outcome_totals[FILEOP_ERROR] + tracker.read_errors_count
+        };
+        print_outcome_totals(totals);
     }
 }
 
@@ -502,7 +543,7 @@ main(int argc, char**argv) {
     CommandLine cmd_line_args = parse_cmd_line_args(argc, argv);
 
     if(cmd_line_args.file_count > 0) {
-        convert_files(argc, argv, &cmd_line_args);
+        convert_files(&cmd_line_args);
     } else {
         if(!cmd_line_args.quiet) {
             if(cmd_line_args.convention == NO_CONVENTION) {

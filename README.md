@@ -1,4 +1,4 @@
-| Version 1.7 | Apache License 2.0 |
+| Version 1.8 | Apache License 2.0 |
 | ----------------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -55,25 +55,30 @@ Let the help screen say it all :
                 endlines linux -k -r aFolder anotherFolder
 
 
-Install
--------
+## Install
 
-Apple OSX users may get the binary from the `apple_osx_binary` directory and save it to their `/usr/local/bin`.
+### From binaries
 
-Linux and other POSIX users just download the repository and type `sudo make install`. 
+The `binaries` folder contains precompiled binaries for Linux/AMD64 and OSX. You can rename the one that fits you to `endlines` and move it to `/usr/local/bin` or to your local path.
 
 
-Operating systems
------------------
+### From source
+
+- Local install : `make; make test` ; if satisfied, move the `endlines` executable to your local path.
+- Global install : `make; make test; sudo make install` should suffice.
+
+
+
+## Operating systems
 
 Endlines is known to have been compiled and run out of the box on Apple OSX, several Linux distributions and IBM AIX. I provide support for all POSIX compliant operating sytems.
 
 Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
 
 
-News
----------------
+## News
+
+Version 1.8 is safe for concurrent launches. Besides, I don't have a Mac anymore, and this will be the last version that I can compile for OSX by myself. If somebody is willing to provide support with OSX builds, I'll be glad to team up. Please just open an issue.
 
 Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose.
 
-Currently `endlines` is not safe for concurrent launches over the same set of files, because of its temporary file policy. 1.8 will bring in concurrency support.
