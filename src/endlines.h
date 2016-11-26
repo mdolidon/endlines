@@ -19,42 +19,30 @@
 #ifndef _ENDLINES_H_
 #define _ENDLINES_H_
 
-
-// If you have something to configure, it's probably
-// one of these three values.
-
-
-#define VERSION "1.8"
+#define PROGRAM_NAME "endlines"
+#define VERSION "1.8.1"
 #define BUFFERSIZE 16384
 #define TMP_FILENAME_BASE ".tmp_endlines_"
 
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-// The rest is made up of :
-// - common includes
-// - common type definitions
-// - function definitions
-
-
-/* Give us access to high resolution time functions in time.h */
-#define _XOPEN_SOURCE 500
-
-
 #include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>     // for FILE type, if nothing else
+#include <stdio.h>
+#include <sys/stat.h>
+#include <utime.h>
 
 #ifndef BYTE
 #define BYTE unsigned char
 #endif
 
 
-// All the conventions we know about.
-// Define the enum values here.
-// Define display names and command-line names in main.c
-// Define binary reality in engine.c
+#define FILEOP_STATUSES_COUNT 4
+typedef enum {
+    CAN_CONTINUE,  // intermediate state : no error yet
+    DONE,
+    SKIPPED_BINARY,
+    FILEOP_ERROR,
+} FileOp_Status;
+
+
 #define CONVENTIONS_COUNT 5
 typedef enum {
     NO_CONVENTION,
@@ -64,16 +52,6 @@ typedef enum {
     MIXED
 } Convention;
 
-
-
-// Reports from the conversion function to the caller
-typedef struct {
-    bool error_during_conversion;
-    bool contains_non_text_chars;
-    unsigned int count_by_convention[CONVENTIONS_COUNT];
-} FileReport;
-
-
 typedef struct {
     FILE* instream;
     FILE* outstream;
@@ -82,15 +60,32 @@ typedef struct {
     bool interrupt_if_non_text;
 } ConversionParameters;
 
+typedef struct {
+    unsigned int count_by_convention[CONVENTIONS_COUNT];
+    bool error_during_conversion;
+    bool contains_non_text_chars;
+} FileReport;
 
-// This function means business.
-// It is exported by engine.c
-FileReport
-convert_stream(ConversionParameters p);
+
+// file_operations.c
+struct utimbuf get_file_times(struct stat* statinfo);
+
+FileOp_Status open_input_file_for_conversion(FILE** in,  char* in_filename);
+FileOp_Status            open_temporary_file(FILE** out, char* tmp_filename);
+FileOp_Status    open_input_file_for_dry_run(FILE** in,  char* in_filename);
+
+FileOp_Status move_temp_file_to_destination(
+        char* tmp_filename, char* filename, struct stat *statinfo);
 
 
-// Functions declared in utils.c
+// convert_stream.c
+FileReport convert_stream(ConversionParameters p);
+
+
+// utils.c
 bool has_known_binary_file_extension(char*);
 Convention get_source_convention(FileReport*);
+void display_help_and_quit();
+void display_version_and_quit();
 
 #endif

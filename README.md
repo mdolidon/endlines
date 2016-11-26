@@ -78,7 +78,7 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 
 ## News
 
-Version 1.8 is safe for concurrent launches. Besides, I don't have a Mac anymore, and this will be the last version that I can compile for OSX by myself. If somebody is willing to provide support with OSX builds, I'll be glad to team up. Please just open an issue.
+Version 1.8 is safe for concurrent launches.
 
-Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose.
+Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose. Besides, I don't have a Mac anymore, and this will be the last version that I can compile for OSX by myself. If somebody is willing to provide support with OSX builds, I'll be glad to team up. Please just open an issue.
 

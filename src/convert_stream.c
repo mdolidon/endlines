@@ -18,6 +18,8 @@
 
 #include "endlines.h"
 
+#include <stdlib.h>
+
 
 // Word as in "binary word", not as in "english word"
 

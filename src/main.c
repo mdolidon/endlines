@@ -19,12 +19,10 @@
 
 #include "endlines.h"
 #include "walkers.h"
-#include "file_operations.h"
 
+#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <utime.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 
@@ -124,61 +122,6 @@ setup_conventions_display_names() {
 
 
 
-// =============== THE HELP AND VERSION SCREENS ===============
-
-void
-display_help_and_quit() {
-    fprintf(stderr, "\n"
-                    "  endlines ACTION [OPTIONS] [FILES]\n\n"
-
-                    "  ACTION can be :\n"
-                    "    lf, unix, linux, osx    : convert all endings to LF.\n"
-                    "    crlf, windows, win, dos : convert all endings to CR-LF.\n"
-                    "    cr, oldmac              : convert all endings to CR.\n"
-                    "    check                   : perform a dry run to check current conventions.\n\n"
-
-                    "  If no files are specified, endlines converts from stdin to stdout.\n"
-                    "  Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.\n\n"
-
-                    "  General   -q / --quiet    : silence all but the error messages.\n"
-                    "            -v / --verbose  : print more about what's going on.\n"
-                    "            --version       : print version and license.\n\n"
-
-                    "  Files     -b / --binaries : don't skip binary files.\n"
-                    "            -h / --hidden   : process hidden files (/directories) too.\n"
-                    "            -k / --keepdate : keep last modified and last access times.\n"
-                    "            -r / --recurse  : recurse into directories.\n\n"
-
-                    "  Examples  endlines check *.txt\n"
-                    "            endlines linux -k -r aFolder anotherFolder\n\n");
-    exit(1);
-}
-
-
-void
-display_version_and_quit() {
-    fprintf(stderr, "\n   * endlines version %s \n"
-
-                    "   * Copyright 2014-2016 Mathias Dolidon\n\n"
-
-                    "   Licensed under the Apache License, Version 2.0 (the \"License\");\n"
-                    "   you may not use this file except in compliance with the License.\n"
-                    "   You may obtain a copy of the License at\n\n"
-
-                    "       http://www.apache.org/licenses/LICENSE-2.0\n\n"
-
-                    "   Unless required by applicable law or agreed to in writing, software\n"
-                    "   distributed under the License is distributed on an \"AS IS\" BASIS,\n"
-                    "   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
-                    "   See the License for the specific language governing permissions and\n"
-                    "   limitations under the License.\n\n", VERSION);
-
-    exit(1);
-}
-
-
-
-
 
 // =============== PARSING COMMAND LINE OPTIONS ===============
 // Yes it's a huge and ugly switch
@@ -236,20 +179,25 @@ parse_cmd_line_args(int argc, char** argv) {
 // =============== CONVERTING OR CHECKING ONE FILE ===============
 
 
-
-
-
 // Main conversion (resp. checking) handlers
 
 #define TRY partial_status =
 #define CATCH if(partial_status != CAN_CONTINUE) { return partial_status; }
 #define CATCH_CLOSE_IN if(partial_status != CAN_CONTINUE) { fclose(in); return partial_status; }
 
+
+// Make up once a file name for all tmp file creations from this process.
 void
 initialize_session_tmp_filename(char* session_tmp_filename) {
-    struct timespec res;
-    clock_gettime(CLOCK_REALTIME, &res);
-    int suffix = res.tv_nsec % 9999999;
+    struct {
+        long safety_padding_a;
+        pid_t pid;
+        long safety_padding_b;
+    } pid_holder;
+
+    pid_holder.pid = getpid();
+
+    int suffix = (int)(((long)pid_holder.pid) % 9999999);
     sprintf(session_tmp_filename, "%s%d", TMP_FILENAME_BASE, suffix);
 }
 
@@ -298,7 +246,7 @@ convert_one_file(
     FileOp_Status partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
-    
+
     static char session_tmp_filename[40] = "";
     char local_tmp_file_name[WALKERS_MAX_PATH_LENGTH];
     struct utimbuf original_file_times = get_file_times(statinfo);
@@ -366,6 +314,10 @@ check_one_file(char* filename, CommandLine* cmd_line_args, FileReport* file_repo
 
     fclose(in);
 
+    if(report.error_during_conversion) {
+        fprintf(stderr, "endlines : file access error during check of %s\n", filename);
+        return FILEOP_ERROR;
+    }
     if(report.contains_non_text_chars && !cmd_line_args->binaries) {
         return SKIPPED_BINARY;
     }
@@ -487,7 +439,7 @@ make_accumulator(CommandLine* cmd_line_args) {
 
 Walk_tracker
 make_tracker(CommandLine* cmd_line_args, Accumulator* accumulator) {
-    Walk_tracker t = make_default_walk_tracker(); // from walkers.h
+    Walk_tracker t = make_default_walk_tracker();
 
     t.process_file = &walkers_callback;
     t.accumulator = accumulator;

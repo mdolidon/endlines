@@ -67,6 +67,4 @@ char
     "CLASS", "O", "EXE", "SWF", "SWT", "SWC", "DLL"  // no need to upcase for linux libraries .so, la., and .a
 };
 
-
-
 #endif

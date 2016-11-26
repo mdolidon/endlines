@@ -20,9 +20,9 @@
 #ifndef _WALKERS_H_
 #define _WALKERS_H_
 
-// There's no clean cross-platform way to be sure about the program name,
-// so I chose to uncleanly set it here.
-#define WALKERS_PROGNAME "endlines"
+#ifndef PROGRAM_NAME
+#define PROGRAM_NAME "endlines"  // I don't know a clean X-platform way to figure out the program
+#endif                           // name ; so I set it uncleanly...
 
 #define WALKERS_MAX_PATH_LENGTH 1024 
 

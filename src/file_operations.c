@@ -17,7 +17,9 @@
 */
 
 #include "endlines.h"
-#include "file_operations.h"
+
+#include <stdlib.h>
+#include <unistd.h>
 
 
 struct utimbuf
@@ -94,4 +96,3 @@ move_temp_file_to_destination(char* tmp_filename, char* filename, struct stat *s
 
     return CAN_CONTINUE;
 }
-
