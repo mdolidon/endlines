@@ -83,7 +83,7 @@ move_temp_file_to_destination(char* tmp_filename, char* filename, struct stat *s
                         "  -- You may report this occurence at :\n"
                         "     https://github.com/mdolidon/endlines/issues\n",
                 filename, tmp_filename, filename);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     err = chmod(filename, statinfo->st_mode);
     if(err) {

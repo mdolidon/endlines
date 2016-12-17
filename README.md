@@ -1,4 +1,4 @@
-| Version 1.8.1 | Apache License 2.0 |
+| Version 1.8.2 | Apache License 2.0 |
 | ----------------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
@@ -77,6 +77,8 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 
 
 ## News
+
+Version 1.8.2 got more verbose when converting standard streams.
 
 Version 1.8.1 should fix the build issue with OSX.
 

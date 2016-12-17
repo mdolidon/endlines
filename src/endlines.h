@@ -20,7 +20,7 @@
 #define _ENDLINES_H_
 
 #define PROGRAM_NAME "endlines"
-#define VERSION "1.8.1"
+#define VERSION "1.8.2"
 #define BUFFERSIZE 16384
 #define TMP_FILENAME_BASE ".tmp_endlines_"
 
@@ -58,13 +58,13 @@ typedef struct {
     Convention dst_convention;
     bool interrupt_if_not_like_dst_convention;
     bool interrupt_if_non_text;
-} ConversionParameters;
+} Conversion_Parameters;
 
 typedef struct {
     unsigned int count_by_convention[CONVENTIONS_COUNT];
     bool error_during_conversion;
     bool contains_non_text_chars;
-} FileReport;
+} Conversion_Report;
 
 
 // file_operations.c
@@ -79,12 +79,12 @@ FileOp_Status move_temp_file_to_destination(
 
 
 // convert_stream.c
-FileReport convert_stream(ConversionParameters p);
+Conversion_Report convert_stream(Conversion_Parameters p);
 
 
 // utils.c
 bool has_known_binary_file_extension(char*);
-Convention get_source_convention(FileReport*);
+Convention get_source_convention(Conversion_Report*);
 void display_help_and_quit();
 void display_version_and_quit();
 

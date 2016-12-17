@@ -1,8 +1,8 @@
-cc -O3 -Wall -std=c99 -c src/file_operations.c -o src/file_operations.o
-cc -O3 -Wall -std=c99 -c src/walkers.c -o src/walkers.o
-cc -O3 -Wall -std=c99 -c src/convert_stream.c -o src/convert_stream.o
-cc -O3 -Wall -std=c99 -c src/main.c -o src/main.o
-cc -O3 -Wall -std=c99 -c src/utils.c -o src/utils.o
+cc -O2 -Wall -std=c99 -c src/file_operations.c -o src/file_operations.o
+cc -O2 -Wall -std=c99 -c src/walkers.c -o src/walkers.o
+cc -O2 -Wall -std=c99 -c src/convert_stream.c -o src/convert_stream.o
+cc -O2 -Wall -std=c99 -c src/main.c -o src/main.o
+cc -O2 -Wall -std=c99 -c src/utils.c -o src/utils.o
 cc -lrt -o endlines src/file_operations.o src/walkers.o src/convert_stream.o src/main.o src/utils.o
 (cd test; bash runtest.sh)
 

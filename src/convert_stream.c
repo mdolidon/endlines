@@ -238,7 +238,7 @@ is_non_text_char(word_t w) {
 // MAIN CONVERSION LOOP
 
 static inline void
-init_report(FileReport* report) {
+init_report(Conversion_Report* report) {
     report->error_during_conversion = false;
     report->contains_non_text_chars = false;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
@@ -246,8 +246,8 @@ init_report(FileReport* report) {
     }
 }
 
-FileReport
-convert_stream(ConversionParameters p) {
+Conversion_Report
+convert_stream(Conversion_Parameters p) {
 
     bool err = false;
 
@@ -257,7 +257,7 @@ convert_stream(ConversionParameters p) {
     Buffered_stream output_stream;
     setup_output_buffered_stream(&output_stream, p.outstream, input_stream.wordLayout);
 
-    FileReport report;
+    Conversion_Report report;
     init_report(&report);
 
     word_t word;

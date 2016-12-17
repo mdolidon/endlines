@@ -25,7 +25,7 @@
 
 
 Convention
-get_source_convention(FileReport* file_report) {
+get_source_convention(Conversion_Report* file_report) {
     Convention c = NO_CONVENTION;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
         if(file_report->count_by_convention[i] > 0) {
@@ -89,7 +89,7 @@ display_help_and_quit() {
 
                     "  Examples  endlines check *.txt\n"
                     "            endlines linux -k -r aFolder anotherFolder\n\n");
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -111,5 +111,5 @@ display_version_and_quit() {
                     "   See the License for the specific language governing permissions and\n"
                     "   limitations under the License.\n\n", VERSION);
 
-    exit(1);
+    exit(EXIT_SUCCESS);
 }
