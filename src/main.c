@@ -17,6 +17,7 @@
 */
 
 
+#include "command_line_parser.h"
 #include "endlines.h"
 #include "walkers.h"
 
@@ -42,6 +43,7 @@ typedef struct {
 // Holds all command line parameters
 
 typedef struct {
+    bool dst_convention_specified;
     Convention dst_convention;
     bool quiet;
     bool verbose;
@@ -49,7 +51,7 @@ typedef struct {
     bool keepdate;
     bool recurse;
     bool process_hidden;
-    char** filenames;
+    char **filenames;
     int file_count;
 } Invocation;
 
@@ -64,7 +66,7 @@ typedef struct {
 typedef struct {
     int outcome_totals[FILEOP_STATUSES_COUNT];
     int convention_totals[CONVENTIONS_COUNT];
-    Invocation* invocation;
+    Invocation *invocation;
 } Batch_outcome_accumulator;
 
 
@@ -72,7 +74,6 @@ typedef struct {
 
 // =============== ALL ABOUT CONVENTION NAMES ===============
 
-#define CL_NAMES_COUNT 11
 const cmd_line_args_to_convention cl_names[] = {
     {.name="check",   .convention=NO_CONVENTION},
     {.name="lf",      .convention=LF},
@@ -86,90 +87,137 @@ const cmd_line_args_to_convention cl_names[] = {
     {.name="cr",      .convention=CR},
     {.name="oldmac",  .convention=CR}
 };
+const int cl_names_count =
+        (int)(sizeof(cl_names)/sizeof(cl_names[0]));
 
 Convention
-read_convention_from_string(char * name) {
-    for(int i=0; i<CL_NAMES_COUNT; ++i) {
+read_convention_from_string(const char *name)
+{
+    for(int i=0; i<cl_names_count; ++i) {
         if(!strcmp(cl_names[i].name, name)) {
             return cl_names[i].convention;
         }
     }
-    fprintf(stderr, "endlines : unknown action : %s\n", name);
+    fprintf(stderr, "%s : unknown action : %s\n", PROGRAM_NAME, name);
     exit(EXIT_FAILURE);
 }
 
-const char* convention_display_names[CONVENTIONS_COUNT];
-const char* convention_short_display_names[CONVENTIONS_COUNT];
-void
-setup_conventions_display_names() {
-    convention_display_names[NO_CONVENTION] = "No line ending";
-    convention_short_display_names[NO_CONVENTION] = "None";
-
-    convention_display_names[CR] = "Legacy Mac (CR)";
-    convention_short_display_names[CR] = "CR";
-
-    convention_display_names[LF] = "Unix (LF)";
-    convention_short_display_names[LF] = "LF";
-
-    convention_display_names[CRLF] = "Windows (CR-LF)";
-    convention_short_display_names[CRLF] = "CRLF";
-
-    convention_display_names[MIXED] = "Mixed endings";
-    convention_short_display_names[MIXED] = "Mixed";
-}
-
-
-void setup_constants() {
-    setup_conventions_display_names();
-}
+#define X(a,b,c) b,
+const char *convention_display_names[CONVENTIONS_COUNT] = {CONVENTIONS_TABLE};
+#undef X
+#define X(a,b,c) c,
+const char *convention_short_display_names[CONVENTIONS_COUNT] = {CONVENTIONS_TABLE};
+#undef X
 
 
 // =============== PARSING COMMAND LINE OPTIONS ===============
-// Yes it's a huge and ugly switch
+
+void
+got_help_flag(const char *arg, void *context)
+{
+    display_help_and_quit();
+}
+
+void
+got_version_flag(const char *arg, void *context)
+{
+    display_version_and_quit();
+}
+
+void
+got_quiet_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->quiet = true;
+}
+
+void
+got_verbose_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->verbose = true;
+}
+
+void
+got_process_binaries_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->binaries = true;
+}
+
+void
+got_keepdate_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->keepdate = true;
+}
+
+void
+got_recurse_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->recurse = true;
+}
+
+void
+got_process_hidden_flag(const char *arg, void *context)
+{
+    ((Invocation *)context)->process_hidden = true;
+}
+
+
+void
+got_non_flag_arg(char *argument, int arg_index, void *context)
+{
+    if(!((Invocation *)context)->dst_convention_specified) {
+        ((Invocation *)context)->dst_convention = read_convention_from_string(argument);
+        ((Invocation *)context)->dst_convention_specified = true;
+    } else {
+        ((Invocation *)context)->filenames[ ((Invocation *)context)->file_count ] = argument;
+        ((Invocation *)context)->file_count ++;
+    }
+}
 
 Invocation
-parse_command_line(int argc, char** argv) {
-    Invocation cmd_line_invocation = {.quiet=false, .binaries=false, .keepdate=false, .verbose=false,
-    .recurse=false, .process_hidden=false, .filenames=NULL, .file_count=0};
+parse_endlines_command_line(int argc, char **argv)
+{
+    Command_Line_Schema* command_line_schema = new_command_line_schema(PROGRAM_NAME);
+
+    Command_Line_Flag flags[] = {
+      {.short_flag=0,   .long_flag="help",     .callback=got_help_flag},
+      {.short_flag=0,   .long_flag="version",  .callback=got_version_flag},
+      {.short_flag='q', .long_flag="quiet",    .callback=got_quiet_flag},
+      {.short_flag='v', .long_flag="verbose",  .callback=got_verbose_flag},
+      {.short_flag='k', .long_flag="keepdate", .callback=got_keepdate_flag},
+      {.short_flag='b', .long_flag="binaries", .callback=got_process_binaries_flag},
+      {.short_flag='r', .long_flag="recurse",  .callback=got_recurse_flag},
+      {.short_flag='h', .long_flag="hidden",   .callback=got_process_hidden_flag}
+    };
+    const int flags_count = (int)(sizeof(flags)/sizeof(flags[0]));
+    set_flag_descriptions(command_line_schema, flags, flags_count);
+    set_non_flag_arg_callback(command_line_schema, got_non_flag_arg);
+
+    Invocation cmd_line_invocation = {
+        .dst_convention=NO_CONVENTION,
+        .dst_convention_specified=false,
+        .quiet=false, .binaries=false,
+        .keepdate=false, .verbose=false,
+        .recurse=false, .process_hidden=false,
+        .filenames=NULL, .file_count=0
+    };
 
     cmd_line_invocation.filenames = malloc(argc*sizeof(void*));
     if(cmd_line_invocation.filenames == NULL) {
-        fprintf(stderr, "endlines : can't allocate memory\n");
+        fprintf(stderr, "%s : can't allocate memory\n", PROGRAM_NAME);
         exit(EXIT_FAILURE);
     }
 
-    for(int i=1; i<argc; ++i) {
-        if(i>1 && argv[i][0] != '-') {
-            cmd_line_invocation.filenames[cmd_line_invocation.file_count] = argv[i];
-            ++ cmd_line_invocation.file_count;
-        } else if(!strcmp(argv[i], "--help")) {
-            display_help_and_quit();
-        } else if(!strcmp(argv[i], "--version")) {
-            display_version_and_quit();
-        } else if(i==1) {
-            cmd_line_invocation.dst_convention = read_convention_from_string(argv[1]);
-        } else if(!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quiet")) {
-            cmd_line_invocation.quiet = true;
-        } else if(!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
-            cmd_line_invocation.verbose = true;
-        } else if(!strcmp(argv[i], "-b") || !strcmp(argv[i], "--binaries")) {
-            cmd_line_invocation.binaries = true;
-        } else if(!strcmp(argv[i], "-k") || !strcmp(argv[i], "--keepdate")) {
-            cmd_line_invocation.keepdate = true;
-        } else if(!strcmp(argv[i], "-r") || !strcmp(argv[i], "--recurse")) {
-            cmd_line_invocation.recurse = true;
-        } else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--hidden")) {
-            cmd_line_invocation.process_hidden = true;
-        } else {
-            fprintf(stderr, "endlines : unknown option : %s\n", argv[i]);
-            exit(EXIT_FAILURE);
-        }
+    parse_command_line(argc, argv, command_line_schema, &cmd_line_invocation);
+    destroy_command_line_schema(command_line_schema);
+    if(! cmd_line_invocation.dst_convention_specified) {
+        fprintf(stderr, "%s : you need to specify an action. See %s --help\n", PROGRAM_NAME, PROGRAM_NAME);
+        exit(EXIT_FAILURE);
     }
-
     return cmd_line_invocation;
 }
 
-void destroy_invocation(Invocation *i) {
+void destroy_invocation_on_stack(Invocation *i)
+{
     free(i->filenames);
 }
 
@@ -188,7 +236,8 @@ void destroy_invocation(Invocation *i) {
 
 // Make up once a file name for all tmp file creations from this process.
 void
-initialize_session_tmp_filename(char* session_tmp_filename) {
+initialize_session_tmp_filename(char *session_tmp_filename)
+{
     struct {
         long safety_padding_a;
         pid_t pid;
@@ -201,13 +250,12 @@ initialize_session_tmp_filename(char* session_tmp_filename) {
     sprintf(session_tmp_filename, "%s%d", TMP_FILENAME_BASE, suffix);
 }
 
-FileOp_Status
-pre_conversion_check(
-        FILE* in,
-        char* filename,
-        Conversion_Report* file_report,
-        Invocation* invocation) {
 
+FileOp_Status
+pre_conversion_check(FILE *in, char *filename,
+                     Conversion_Report *file_report,
+                     Invocation *invocation)
+{
     Conversion_Parameters p = {
         .instream=in,
         .outstream=NULL,
@@ -215,14 +263,13 @@ pre_conversion_check(
         .interrupt_if_not_like_dst_convention=true,
         .interrupt_if_non_text=!invocation->binaries
     };
-
     Conversion_Report preliminary_report = convert_stream(p);
 
     if(preliminary_report.error_during_conversion) {
-        fprintf(stderr, "endlines : file access error during preliminary check of %s\n", filename);
+        fprintf(stdout, "%s : file access error during preliminary check of %s\n",
+                PROGRAM_NAME, filename);
         return FILEOP_ERROR;
     }
-
     if(preliminary_report.contains_non_text_chars && !invocation->binaries) {
         return SKIPPED_BINARY;
     }
@@ -236,33 +283,24 @@ pre_conversion_check(
 
 
 FileOp_Status
-convert_one_file(
-        char* filename,
-        struct stat* statinfo,
-        Invocation* invocation,
-        Conversion_Report* file_report) {
-
-
+convert_one_file(char *filename, struct stat *statinfo,
+        Invocation *invocation,
+        Conversion_Report *file_report)
+{
     FileOp_Status partial_status;
     FILE *in  = NULL;
     FILE *out = NULL;
-
     static char session_tmp_filename[40] = "";
-    char local_tmp_file_name[WALKERS_MAX_PATH_LENGTH];
-    struct utimbuf original_file_times = get_file_times(statinfo);
-
     if(session_tmp_filename[0]==0) {
         initialize_session_tmp_filename(session_tmp_filename);
     }
+    char local_tmp_file_name[WALKERS_MAX_PATH_LENGTH];
+    struct utimbuf original_file_times = get_file_times(statinfo);
 
     TRY open_input_file_for_conversion(&in, filename); CATCH
     TRY pre_conversion_check(in, filename, file_report, invocation); CATCH_CLOSE_IN
     rewind(in);
-    int tmp_path_err = make_filename_in_same_location(filename, session_tmp_filename, local_tmp_file_name);
-    if(tmp_path_err) {
-        fclose(in);
-        return FILEOP_ERROR;
-    }
+    TRY make_filename_in_same_location(filename, session_tmp_filename, local_tmp_file_name); CATCH_CLOSE_IN
     TRY open_temporary_file(&out, local_tmp_file_name); CATCH_CLOSE_IN
 
     Conversion_Parameters p = {
@@ -278,7 +316,8 @@ convert_one_file(
     fclose(out);
 
     if(report.error_during_conversion) {
-        fprintf(stderr, "endlines : file access error during conversion of %s\n", filename);
+        remove(local_tmp_file_name);
+        fprintf(stdout, "%s : file access error during conversion of %s\n", PROGRAM_NAME, filename);
         return FILEOP_ERROR;
     }
     if(report.contains_non_text_chars && !invocation->binaries) {
@@ -291,14 +330,14 @@ convert_one_file(
     if(invocation->keepdate) {
         utime(filename, &original_file_times);
     }
-
     memcpy(file_report, &report, sizeof(Conversion_Report));
     return DONE;
 }
 
 
 FileOp_Status
-check_one_file(char* filename, Invocation* invocation, Conversion_Report* file_report) {
+check_one_file(char *filename, Invocation *invocation, Conversion_Report *file_report)
+{
     FileOp_Status partial_status;
     FILE *in  = NULL;
     TRY open_input_file_for_dry_run(&in, filename); CATCH
@@ -315,22 +354,18 @@ check_one_file(char* filename, Invocation* invocation, Conversion_Report* file_r
     fclose(in);
 
     if(report.error_during_conversion) {
-        fprintf(stderr, "endlines : file access error during check of %s\n", filename);
+        fprintf(stdout, "%s : file access error during check of %s\n", PROGRAM_NAME, filename);
         return FILEOP_ERROR;
     }
     if(report.contains_non_text_chars && !invocation->binaries) {
         return SKIPPED_BINARY;
     }
-
     memcpy(file_report, &report, sizeof(Conversion_Report));
     return DONE;
 }
 
 #undef TRY
 #undef CATCH
-
-
-
 
 
 // =============== HANDLING A CONVERSION BATCH ===============
@@ -346,62 +381,68 @@ typedef struct {
     int errors;
 } Outcome_totals_for_display;
 
+
 void
-print_verbose_file_outcome(char * filename, FileOp_Status outcome, Convention source_convention) {
+print_verbose_file_outcome(char *filename, FileOp_Status outcome, Convention source_convention)
+{
     switch(outcome) {
-        case DONE:
-            fprintf(stderr, "endlines : %s -- %s\n",
-                    convention_short_display_names[source_convention], filename);
-            break;
-        case SKIPPED_BINARY:
-            fprintf(stderr, "endlines : skipped probable binary %s\n", filename);
-            break;
-        default: break;
+    case DONE:
+        fprintf(stdout, "%s : %s -- %s\n",
+                PROGRAM_NAME,
+                convention_short_display_names[source_convention], filename);
+        break;
+    case SKIPPED_BINARY:
+        fprintf(stdout, "%s : skipped probable binary %s\n", PROGRAM_NAME, filename);
+        break;
+    default: break;
     }
 }
 
+
 void
-print_outcome_totals(Outcome_totals_for_display t) {
-    fprintf(stderr,  "\nendlines : %i file%s %s", t.done,
+print_outcome_totals(Outcome_totals_for_display t)
+{
+    fprintf(stdout,  "\n%s : %i file%s %s", PROGRAM_NAME, t.done,
             t.done>1?"s":"", t.dry_run?"checked":"converted");
 
     if(t.done) {
-        fprintf(stderr, " %s :\n", t.dry_run?"; found":"from");
+        fprintf(stdout, " %s :\n", t.dry_run?"; found":"from");
         for(int i=0; i<CONVENTIONS_COUNT; ++i) {
             if(t.count_by_convention[i]) {
-                fprintf(stderr, "              - %i %s\n",
+                fprintf(stdout, "              - %i %s\n",
                         t.count_by_convention[i], convention_display_names[i]);
             }
         }
     } else {
-        fprintf(stderr, "\n");
+        fprintf(stdout, "\n");
     }
-
     if(t.directories) {
-        fprintf(stderr, "           %i director%s skipped\n",
+        fprintf(stdout, "           %i director%s skipped\n",
                 t.directories, t.directories>1?"ies":"y");
     }
     if(t.binaries) {
-        fprintf(stderr, "           %i binar%s skipped\n",
+        fprintf(stdout, "           %i binar%s skipped\n",
                 t.binaries, t.binaries>1?"ies":"y");
     }
     if(t.hidden) {
-        fprintf(stderr, "           %i hidden file%s skipped\n",
+        fprintf(stdout, "           %i hidden file%s skipped\n",
                 t.hidden, t.hidden>1?"s":"");
     }
     if(t.errors) {
-        fprintf(stderr, "           %i error%s\n",
+        fprintf(stdout, "           %i error%s\n",
                 t.errors, t.errors>1?"s":"");
     }
-    fprintf(stderr, "\n");
+    fprintf(stdout, "\n");
 }
 
+
 void
-walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
+walkers_callback(char *filename, struct stat *statinfo, void *p_accumulator)
+{
     FileOp_Status outcome;
     Conversion_Report file_report;
     Convention source_convention = NO_CONVENTION;
-    Batch_outcome_accumulator* accumulator = (Batch_outcome_accumulator*) p_accumulator;
+    Batch_outcome_accumulator *accumulator = (Batch_outcome_accumulator*) p_accumulator;
 
     if(!accumulator->invocation->binaries &&
             has_known_binary_file_extension(filename)) {
@@ -411,20 +452,20 @@ walkers_callback(char* filename, struct stat* statinfo, void* p_accumulator) {
     } else {
         outcome = convert_one_file(filename, statinfo, accumulator->invocation, &file_report);
     }
-
     if(outcome == DONE) {
         source_convention = get_source_convention(&file_report);
         ++ accumulator->convention_totals[source_convention];
     }
-
     ++ accumulator->outcome_totals[outcome];
     if(accumulator->invocation->verbose) {
         print_verbose_file_outcome(filename, outcome, source_convention);
     }
 }
 
+
 Batch_outcome_accumulator
-make_accumulator(Invocation* invocation) {
+make_accumulator(Invocation *invocation)
+{
     Batch_outcome_accumulator a;
     for(int i=0; i<FILEOP_STATUSES_COUNT; ++i) {
         a.outcome_totals[i] = 0;
@@ -436,8 +477,10 @@ make_accumulator(Invocation* invocation) {
     return a;
 }
 
+
 Walk_tracker
-make_tracker(Invocation* invocation, Batch_outcome_accumulator* accumulator) {
+make_tracker(Invocation *invocation, Batch_outcome_accumulator *accumulator)
+{
     Walk_tracker t = make_default_walk_tracker();
 
     t.process_file = &walkers_callback;
@@ -448,16 +491,19 @@ make_tracker(Invocation* invocation, Batch_outcome_accumulator* accumulator) {
     return t;
 }
 
+
 void
-convert_files(Invocation* invocation)  {
+convert_files(Invocation *invocation)
+{
     Batch_outcome_accumulator accumulator = make_accumulator(invocation);
     Walk_tracker tracker = make_tracker(invocation, &accumulator);
 
     if(!invocation->quiet) {
         if(invocation->dst_convention == NO_CONVENTION) {
-            fprintf(stderr, "endlines : dry run, scanning files\n");
+            fprintf(stdout, "%s : dry run, scanning files\n", PROGRAM_NAME);
         } else {
-            fprintf(stderr, "endlines : converting files to %s\n",
+            fprintf(stdout, "%s : converting files to %s\n",
+                    PROGRAM_NAME,
                     convention_display_names[invocation->dst_convention]);
         }
     }
@@ -480,28 +526,32 @@ convert_files(Invocation* invocation)  {
 
 // ============== HANDLING THE CONVERSION OF STANDARD STREAMS ===============
 
-void print_stream_conversion_outcome(Conversion_Parameters *parameters, Conversion_Report *report) {
+void print_stream_conversion_outcome(Conversion_Parameters *parameters, Conversion_Report *report)
+{
     Convention source_convention = get_source_convention(report);
     if(parameters->dst_convention == NO_CONVENTION) {
         char *binary_comment = report->contains_non_text_chars ? "looked like a binary stream and " : "";
-        fprintf(stderr, "endlines : stdin %shad line endings in %s\n",
-                binary_comment,
+        fprintf(stderr, "%s : stdin %shad line endings in %s\n",
+                PROGRAM_NAME, binary_comment,
                 convention_display_names[source_convention]);
     } else {
         char *binary_comment = report->contains_non_text_chars ? "(looked like a binary stream) " : "";
-        fprintf(stderr, "endlines : converted from %s in stdin %sto %s in stdout\n",
+        fprintf(stderr, "%s : converted from %s in stdin %sto %s in stdout\n",
+                PROGRAM_NAME,
                 convention_display_names[source_convention],
                 binary_comment,
                 convention_display_names[parameters->dst_convention]);
     }
 }
 
-void convert_stdin_to_stdout(Invocation *invocation) {
+void convert_stdin_to_stdout(Invocation *invocation)
+{
     if(!invocation->quiet) {
         if(invocation->dst_convention == NO_CONVENTION) {
-            fprintf(stderr, "endlines : dry run, scanning standard input\n");
+            fprintf(stderr, "%s : dry run, scanning standard input\n", PROGRAM_NAME);
         } else {
-            fprintf(stderr, "endlines : converting standard input to %s\n",
+            fprintf(stderr, "%s : converting standard input to %s\n",
+                    PROGRAM_NAME,
                     convention_display_names[invocation->dst_convention]);
         }
     }
@@ -521,22 +571,18 @@ void convert_stdin_to_stdout(Invocation *invocation) {
 // =============== ENTRY POINT ===============
 
 int
-main(int argc, char**argv) {
+main(int argc, char**argv)
+{
     if(argc <= 1) {
         display_help_and_quit();
     }
-
-    setup_constants();
-
-    Invocation cmd_line_invocation = parse_command_line(argc, argv);
-
+    Invocation cmd_line_invocation = parse_endlines_command_line(argc, argv);
     if(cmd_line_invocation.file_count > 0) {
         convert_files(&cmd_line_invocation);
     } else {
         convert_stdin_to_stdout(&cmd_line_invocation);
     }
-
-    destroy_invocation(&cmd_line_invocation);
-    return 0;
+    destroy_invocation_on_stack(&cmd_line_invocation);
+    return EXIT_SUCCESS;
 }
 

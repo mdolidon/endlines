@@ -58,7 +58,7 @@
 typedef struct {
     // options
     void (*process_file)(char*, struct stat*, void*);
-    void* accumulator;
+    void *accumulator;
     bool verbose;
     bool recurse;
     bool skip_hidden;
@@ -91,18 +91,10 @@ make_default_walk_tracker();
 // THE WALKERS
 
 void
-walk_filenames(char** filenames, int file_count, Walk_tracker* tracker);
+walk_filenames(char **filenames, int file_count, Walk_tracker *tracker);
 
 void
-walk_directory(char* directory_name, Walk_tracker* tracker);
-
-
-// A CONVENIENCE UTILITY FUNCTION
-
-// destination is assumed to be a buffer of length equal to WALKERS_MAX_PATH_LENGTH
-
-int
-make_filename_in_same_location(char* reference_name_and_path, char* wanted_name, char* destination);
+walk_directory(char *directory_name, Walk_tracker *tracker);
 
 
 #endif

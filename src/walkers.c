@@ -34,18 +34,17 @@ make_default_walk_tracker() {
 
 
 
-        //
-        // HELPERS
-        //
 
 static void
-found_a_file_that_needs_processing(char* filename, struct stat* statinfo, Walk_tracker* tracker) {
+found_a_file_that_needs_processing(char *filename, struct stat *statinfo, Walk_tracker *tracker)
+{
             ++ tracker->processed_count;
             tracker->process_file(filename, statinfo, tracker->accumulator);
 }
 
 static void
-skip_a_hidden_file(char* filename, Walk_tracker* tracker) {
+skip_a_hidden_file(char *filename, Walk_tracker *tracker)
+{
     if(tracker->verbose) {
         fprintf(stderr, "%s : skipped hidden file : %s\n", PROGRAM_NAME, filename);
     }
@@ -53,13 +52,15 @@ skip_a_hidden_file(char* filename, Walk_tracker* tracker) {
 }
 
 static void
-found_an_unreadable_file(char* filename, Walk_tracker* tracker) {
+found_an_unreadable_file(char *filename, Walk_tracker *tracker)
+{
     fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, filename);
     ++ tracker->read_errors_count;
 }
 
 static void
-found_a_directory(char* filename, Walk_tracker* tracker) {
+found_a_directory(char *filename, Walk_tracker *tracker)
+{
     if(tracker->recurse) {
         walk_directory(filename, tracker);
     } else {
@@ -83,7 +84,8 @@ typedef enum {
 } trivalent;
 
 static inline trivalent
-could_be_a_hidden_filename_with_a_path_prefix(char *filename, int len) {
+could_be_a_hidden_filename_with_a_path_prefix(char *filename, int len)
+{
     for(int i=len-2; i>=0; --i) {
         if(filename[i]=='/') {
             if(filename[i+1]=='.') {
@@ -97,26 +99,31 @@ could_be_a_hidden_filename_with_a_path_prefix(char *filename, int len) {
 }
 
 static inline bool
-is_a_hidden_file_name_without_a_path_prefix(char *filename, int len) {
+is_a_hidden_file_name_without_a_path_prefix(char *filename, int len)
+{
    return (filename[0]=='.' && strcmp(filename, ".") && strcmp(filename, "..") &&
                                strcmp(filename, "./") && strcmp(filename, "../"));
 }
 
 static bool
-is_hidden_filename(char* filename) {
+is_hidden_filename(char *filename)
+{
     int len = strlen(filename);
     trivalent with_prefix = could_be_a_hidden_filename_with_a_path_prefix(filename, len);
-    if(with_prefix == YES) {
+    switch(with_prefix) {
+    case YES:
         return true;
-    } else if(with_prefix == NO) {
+    case NO:
         return false;
-    } else {
+    case NOT_APPLICABLE:
         return is_a_hidden_file_name_without_a_path_prefix(filename, len);
     }
+    return false; // to silence compiler errors, but should never be reached
 }
 
 void
-walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
+walk_filenames(char **filenames, int file_count, Walk_tracker *tracker)
+{
     struct stat statinfo;
     for(int i=0; i<file_count; ++i) {
         if(is_hidden_filename(filenames[i]) && tracker->skip_hidden) {
@@ -139,7 +146,8 @@ walk_filenames(char** filenames, int file_count, Walk_tracker* tracker) {
 
         // returns 0 on success
 static int
-append_filename_to_base_path(char* base_path, int base_path_length, char* filename) {
+append_filename_to_base_path(char *base_path, int base_path_length, char *filename)
+{
     size_t filename_length = strlen(filename);
     size_t total_length = base_path_length + filename_length + 1; // +1 for a slash
     if(total_length >= WALKERS_MAX_PATH_LENGTH) {                // +1 for the terminating 0
@@ -158,60 +166,24 @@ append_filename_to_base_path(char* base_path, int base_path_length, char* filena
 }
 
 
-int
-make_filename_in_same_location(char* reference_name_and_path, char* wanted_name, char* destination) {
-    int reflen = strlen(reference_name_and_path);
-    if(reflen>=WALKERS_MAX_PATH_LENGTH) {
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
-                PROGRAM_NAME, reference_name_and_path);
-        return 1;
-    }
-
-    int filename_start = reflen;
-    while(filename_start > 0) {
-        filename_start --;
-        if(reference_name_and_path[filename_start]=='/') {
-            filename_start ++;
-            break;
-        }
-    }
-
-    int wanted_length = strlen(wanted_name);
-    if(wanted_length + filename_start + 1 >= WALKERS_MAX_PATH_LENGTH) {
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s on %s\n",
-                PROGRAM_NAME, wanted_name, reference_name_and_path);
-        return 1;
-    }
-
-
-    strcpy(destination, reference_name_and_path);
-    strcpy(&(destination[filename_start]), wanted_name);
-    return 0;
-}
-
 static void
-reset_base_path_termination(char* base_path, int base_path_length) {
+reset_base_path_termination(char *base_path, int base_path_length)
+{
     base_path[base_path_length] = 0;
 }
 
 
 // returns 0 on success
 static int
-prepare_to_walk_a_directory(
-        char* directory_name,
-        int dirname_length,
-        char* file_path_buffer,
-        DIR** p_pdir) {
-
+prepare_to_walk_a_directory(char *directory_name, int dirname_length,
+                            char *file_path_buffer, DIR **p_pdir)
+{
     if(dirname_length+1 >= WALKERS_MAX_PATH_LENGTH) {
         fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
                 PROGRAM_NAME, directory_name);
         return -1;
     }
-
     strcpy(file_path_buffer, directory_name);
-
-    // opening the directory
     *p_pdir = opendir(directory_name);
     if(*p_pdir == NULL) {
         fprintf(stderr, "%s : can not open directory %s\n", PROGRAM_NAME, directory_name);
@@ -221,22 +193,16 @@ prepare_to_walk_a_directory(
 }
 
 void
-walk_directory(char* directory_name, Walk_tracker* tracker){
-
+walk_directory(char *directory_name, Walk_tracker *tracker)
+{
     // setting up a path buffer that we'll update with the successive paths of the files we'll iterate upon
     char file_path_buffer[WALKERS_MAX_PATH_LENGTH];
-    DIR* pdir;
+    DIR *pdir;
 
     int dirname_length = strlen(directory_name);
     if(prepare_to_walk_a_directory(directory_name, dirname_length, file_path_buffer, &pdir)) {
         return;
     }
-
-    // iterating over its contents
-    // This used to take advantage of BSD's improved dirent type,
-    // but I've reversed to using d_name only and pass the rest to walk_filenames
-    // in order to be POSIX compliant.
-   
     struct dirent *pent;
     while((pent = readdir(pdir)) != NULL) {
         reset_base_path_termination(file_path_buffer, dirname_length);
@@ -246,10 +212,8 @@ walk_directory(char* directory_name, Walk_tracker* tracker){
         if(append_filename_to_base_path(file_path_buffer, dirname_length, pent->d_name)) {
             continue;
         }
-
-        char* single_filename_array[1];              // this holder is a convenience
-        single_filename_array[0] = file_path_buffer; // to avoid juggling pointer forms
+        char *single_filename_array[1] = {file_path_buffer};
         walk_filenames(single_filename_array, 1, tracker);
     }
     closedir(pdir);
-};
+}

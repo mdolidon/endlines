@@ -42,7 +42,7 @@ typedef enum {
 
 
 typedef struct {
-    FILE* stream;
+    FILE *stream;
     BYTE buffer[BUFFERSIZE];
     int buf_size;
     int buf_ptr;
@@ -57,14 +57,16 @@ static Word_layout detect_buffer_word_layout(Buffered_stream*);
 
 
 static inline void
-setup_base_buffered_stream(Buffered_stream* b, FILE* stream) {
+setup_base_buffered_stream(Buffered_stream *b, FILE *stream)
+{
     b->stream = stream;
     b->buf_size = BUFFERSIZE;
     b->eof = false;
 }
 
 static inline void
-setup_input_buffered_stream(Buffered_stream* b, FILE* stream) {
+setup_input_buffered_stream(Buffered_stream *b, FILE *stream)
+{
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = BUFFERSIZE;
     read_stream_frame(b);
@@ -72,7 +74,8 @@ setup_input_buffered_stream(Buffered_stream* b, FILE* stream) {
 }
 
 static inline void
-setup_output_buffered_stream(Buffered_stream* b, FILE* stream, Word_layout wordLayout) {
+setup_output_buffered_stream(Buffered_stream *b, FILE *stream, Word_layout wordLayout)
+{
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = 0;
     b->wordLayout = wordLayout;
@@ -85,7 +88,8 @@ setup_output_buffered_stream(Buffered_stream* b, FILE* stream, Word_layout wordL
 // the head of the stream data, and not have been read from yet.
 
 static Word_layout
-detect_buffer_word_layout(Buffered_stream* b) {
+detect_buffer_word_layout(Buffered_stream *b)
+{
     if(b->buf_size >= 2) {
         if(b->buffer[0] == 0xFF && b->buffer[1] == 0xFE) {
             return WT_2BYTE_LE;
@@ -105,7 +109,8 @@ detect_buffer_word_layout(Buffered_stream* b) {
 
 // writing operations return true if an error occured
 static inline bool
-flush_buffer(Buffered_stream* b) {
+flush_buffer(Buffered_stream *b)
+{
     if(b->stream) {
         size_t nb_bytes_to_write = (size_t)b->buf_ptr;
         size_t nb_bytes_written = fwrite(b->buffer, 1, nb_bytes_to_write, b->stream);
@@ -118,7 +123,8 @@ flush_buffer(Buffered_stream* b) {
 }
 
 static inline bool
-push_byte(BYTE value, Buffered_stream* b) {
+push_byte(BYTE value, Buffered_stream *b)
+{
     bool err = false;
     b->buffer[b->buf_ptr] = value;
     ++ b->buf_ptr;
@@ -131,23 +137,25 @@ push_byte(BYTE value, Buffered_stream* b) {
 
 // function pointer was 20% slower than a big switch
 static inline bool
-push_word(word_t w, Buffered_stream* b) {
+push_word(word_t w, Buffered_stream *b)
+{
     bool err = false;
     if(b->stream) {
         switch(b->wordLayout) {
-            case WT_1BYTE:
-                err = err || push_byte( (w & 0x000000FF), b);
-                break;
-            case WT_2BYTE_LE:
-                err = err || push_byte( (w & 0x000000FF), b);
-                err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
-                break;
-            case WT_2BYTE_BE:
-                err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
-                err = err || push_byte( (w & 0x000000FF), b);
-                break;
+        case WT_1BYTE:
+            err = err || push_byte( (w & 0x000000FF), b);
+            break;
+        case WT_2BYTE_LE:
+            err = err || push_byte( (w & 0x000000FF), b);
+            err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
+            break;
+        case WT_2BYTE_BE:
+            err = err || push_byte( ((w & 0x0000FF00) >> 8), b);
+            err = err || push_byte( (w & 0x000000FF), b);
+            break;
         default:
-            fprintf(stderr, "endlines : convert_stream.push_word called on a stream with an unknown word layout ; aborting !\n");
+            fprintf(stderr, "endlines : convert_stream.push_word called on a stream with"
+                            "an unknown word layout ; aborting !\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -155,21 +163,25 @@ push_word(word_t w, Buffered_stream* b) {
 }
 
 static inline bool
-push_newline(Convention convention, Buffered_stream* b) {
+push_newline(Convention convention, Buffered_stream *b)
+{
     bool err = false;
     switch(convention) {
-        case CR:   
-            err = err || push_word(13, b);
-            break;
-        case LF:
-            err = err || push_word(10, b);
-            break;
-        case CRLF:
-            err = err || push_word(13, b);
-            err = err || push_word(10, b);
-            break;
-        default:
-            break;
+    case NO_CONVENTION:
+        break;
+    case CR:
+        err = err || push_word(13, b);
+        break;
+    case LF:
+        err = err || push_word(10, b);
+        break;
+    case CRLF:
+        err = err || push_word(13, b);
+        err = err || push_word(10, b);
+        break;
+    default:
+        fprintf(stderr, "endlines : convert_stream.push_newline called with an unknown convention ; aborting !\n");
+        exit(EXIT_FAILURE);
     }
     return err;
 }
@@ -179,7 +191,8 @@ push_newline(Convention convention, Buffered_stream* b) {
 // MANAGING AN INPUT BUFFER
 
 static inline void
-read_stream_frame(Buffered_stream* b) {
+read_stream_frame(Buffered_stream *b)
+{
     b->buf_size = fread(b->buffer, 1, BUFFERSIZE, b->stream);
     if(b->buf_size == 0) {
         b->eof = true;
@@ -189,7 +202,8 @@ read_stream_frame(Buffered_stream* b) {
 }
 
 static inline BYTE
-pull_byte(Buffered_stream* b) {
+pull_byte(Buffered_stream *b)
+{
     if(b->buf_ptr < b->buf_size) {
         return b->buffer[(b->buf_ptr) ++];
     } else {
@@ -203,31 +217,34 @@ pull_byte(Buffered_stream* b) {
 
 // function pointer was 20% slower than a big switch
 static inline word_t
-pull_word(Buffered_stream *b) {
+pull_word(Buffered_stream *b)
+{
     word_t b1, b2, w;
     switch(b->wordLayout) {
-        case WT_1BYTE:
-            return (word_t) pull_byte(b);
-        case WT_2BYTE_LE:
-            b1 = (word_t) pull_byte(b);
-            b2 = (word_t) pull_byte(b);
-            w = b1 + (b2<<8);
-            return w;
-        case WT_2BYTE_BE:
-            b1 = (word_t) pull_byte(b);
-            b2 = (word_t) pull_byte(b);
-            w = (b1<<8) + b2;
-            return w;
-        default:
-            fprintf(stderr, "endlines : convert_stream.pull_word called on a stream with an unknown word layout ; aborting !\n");
-            exit(EXIT_FAILURE);
+    case WT_1BYTE:
+        return (word_t) pull_byte(b);
+    case WT_2BYTE_LE:
+        b1 = (word_t) pull_byte(b);
+        b2 = (word_t) pull_byte(b);
+        w = b1 + (b2<<8);
+        return w;
+    case WT_2BYTE_BE:
+        b1 = (word_t) pull_byte(b);
+        b2 = (word_t) pull_byte(b);
+        w = (b1<<8) + b2;
+        return w;
+    default:
+        fprintf(stderr, "endlines : convert_stream.pull_word called on a stream with "
+                        "an unknown word layout ; aborting !\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 // LOOKING OUT FOR BINARY DATA IN A STREAM
 
 static inline bool
-is_non_text_char(word_t w) {
+is_non_text_char(word_t w)
+{
     return (w <= 8 || (w <= 31 && w >= 14));
 }
 
@@ -238,7 +255,8 @@ is_non_text_char(word_t w) {
 // MAIN CONVERSION LOOP
 
 static inline void
-init_report(Conversion_Report* report) {
+init_report(Conversion_Report *report)
+{
     report->error_during_conversion = false;
     report->contains_non_text_chars = false;
     for(int i=0; i<CONVENTIONS_COUNT; i++) {
@@ -247,8 +265,8 @@ init_report(Conversion_Report* report) {
 }
 
 Conversion_Report
-convert_stream(Conversion_Parameters p) {
-
+convert_stream(Conversion_Parameters p)
+{
     bool err = false;
 
     Buffered_stream input_stream;

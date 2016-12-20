@@ -20,7 +20,7 @@
 #define _ENDLINES_H_
 
 #define PROGRAM_NAME "endlines"
-#define VERSION "1.8.3"
+#define VERSION "pre-1.9"
 #define BUFFERSIZE 16384
 #define TMP_FILENAME_BASE ".tmp_endlines_"
 
@@ -39,22 +39,26 @@ typedef enum {
     CAN_CONTINUE,  // intermediate state : no error yet
     DONE,
     SKIPPED_BINARY,
-    FILEOP_ERROR,
+    FILEOP_ERROR
 } FileOp_Status;
 
-
 #define CONVENTIONS_COUNT 5
+#define CONVENTIONS_TABLE \
+    X(NO_CONVENTION, "No line ending",  "None") \
+    X(CR,            "Legacy Mac (CR)", "CR") \
+    X(LF,            "Unix (LF)",       "LF") \
+    X(CRLF,          "Windows (CR-LF)", "CRLF") \
+    X(MIXED,         "Mixed endings",   "Mixed")
+
+#define X(a,b,c) a,
 typedef enum {
-    NO_CONVENTION,
-    CR,
-    LF,
-    CRLF,
-    MIXED
+    CONVENTIONS_TABLE
 } Convention;
+#undef X
 
 typedef struct {
-    FILE* instream;
-    FILE* outstream;
+    FILE *instream;
+    FILE *outstream;
     Convention dst_convention;
     bool interrupt_if_not_like_dst_convention;
     bool interrupt_if_non_text;
@@ -68,24 +72,27 @@ typedef struct {
 
 
 // file_operations.c
-struct utimbuf get_file_times(struct stat* statinfo);
+struct utimbuf get_file_times(struct stat *statinfo);
 
-FileOp_Status open_input_file_for_conversion(FILE** in,  char* in_filename);
-FileOp_Status            open_temporary_file(FILE** out, char* tmp_filename);
-FileOp_Status    open_input_file_for_dry_run(FILE** in,  char* in_filename);
+FileOp_Status open_input_file_for_conversion(FILE **in,  char *in_filename);
+FileOp_Status open_temporary_file(FILE **out, char *tmp_filename);
+FileOp_Status open_input_file_for_dry_run(FILE **in,  char *in_filename);
 
 FileOp_Status move_temp_file_to_destination(
-        char* tmp_filename, char* filename, struct stat *statinfo);
+        char *tmp_filename, char *filename, struct stat *statinfo);
 
+FileOp_Status make_filename_in_same_location(char *reference_name_and_path, char *wanted_name,
+                                             char *destination);
 
 // convert_stream.c
 Conversion_Report convert_stream(Conversion_Parameters p);
 
 
 // utils.c
-bool has_known_binary_file_extension(char*);
+bool       has_known_binary_file_extension(char*);
 Convention get_source_convention(Conversion_Report*);
-void display_help_and_quit();
-void display_version_and_quit();
+void       display_help_and_quit();
+void       display_version_and_quit();
+
 
 #endif

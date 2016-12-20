@@ -23,8 +23,7 @@
 // Only the extensions we're most likely to encounter inside the
 // kind of project that also host a lot of text data : source code,
 // web project etc.
-#define KNOWN_BINARY_EXTENSIONS_COUNT 163
-char
+const char
 *known_binary_file_extensions[] = {
     // images
     "jpg", "jpeg", "tif", "tiff", "gif", "png", "tga", "bmp", "xcf", "raw", "pdf",
@@ -66,5 +65,7 @@ char
     "class", "o", "exe", "swf", "swt", "swc", "dll", "so", "a", "la",
     "CLASS", "O", "EXE", "SWF", "SWT", "SWC", "DLL"  // no need to upcase for linux libraries .so, la., and .a
 };
+const int known_binary_file_extensions_count =
+        (int)(sizeof(known_binary_file_extensions)/sizeof(known_binary_file_extensions[0]));
 
 #endif

@@ -17,13 +17,16 @@
 */
 
 #include "endlines.h"
+#include "walkers.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 
 struct utimbuf
-get_file_times(struct stat* statinfo) {
+get_file_times(struct stat *statinfo)
+{
     struct utimbuf file_times;
     file_times.actime = statinfo->st_atime;
     file_times.modtime = statinfo->st_mtime;
@@ -32,67 +35,104 @@ get_file_times(struct stat* statinfo) {
 
 
 FileOp_Status
-open_input_file_for_conversion(FILE** in, char* in_filename) {
+open_input_file_for_conversion(FILE **in, char *in_filename)
+{
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
-        fprintf(stderr, "endlines : can not read %s\n", in_filename);
+        fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
         return FILEOP_ERROR;
     }
     if(access(in_filename, W_OK)) {
-        fprintf(stderr, "endlines : can not write over %s\n", in_filename);
+        fprintf(stderr, "%s : can not write over %s\n", PROGRAM_NAME, in_filename);
         fclose(*in);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
 }
 
+
 FileOp_Status
-open_temporary_file(FILE** out, char* tmp_filename) {
+open_temporary_file(FILE **out, char *tmp_filename)
+{
     *out = fopen(tmp_filename, "wb");
     if(*out == NULL) {
-        fprintf(stderr, "endlines : can not create %s\n", tmp_filename);
+        fprintf(stderr, "%s : can not create %s\n", PROGRAM_NAME, tmp_filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
 }
 
+
 FileOp_Status
-open_input_file_for_dry_run(FILE** in, char* in_filename) {
+open_input_file_for_dry_run(FILE **in, char *in_filename)
+{
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
-        fprintf(stderr, "endlines : can not read %s\n", in_filename);
+        fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
 }
 
+
 FileOp_Status
-move_temp_file_to_destination(char* tmp_filename, char* filename, struct stat *statinfo) {
+move_temp_file_to_destination(char *tmp_filename, char *filename, struct stat *statinfo)
+{
     int err = remove(filename);
     if(err) {
-        fprintf(stderr, "endlines : can not write over %s\n", filename);
+        fprintf(stderr, "%s : can not write over %s\n", PROGRAM_NAME, filename);
         remove(tmp_filename);
         return FILEOP_ERROR;
     }
     err = rename(tmp_filename, filename);
     if(err) {
-        fprintf(stderr, "endlines : can not restore %s\n"
+        fprintf(stderr, "%s : can not restore %s\n"
                         "  -- Fail safe reaction : aborting.\n"
                         "  -- You will find your data in %s\n"
                         "  -- Please rename it manually to %s\n"
                         "  -- You may report this occurence at :\n"
                         "     https://github.com/mdolidon/endlines/issues\n",
-                filename, tmp_filename, filename);
+                PROGRAM_NAME, filename, tmp_filename, filename);
         exit(EXIT_FAILURE);
     }
     err = chmod(filename, statinfo->st_mode);
     if(err) {
-        fprintf(stderr, "endlines : could not restore permissions for %s\n", filename);
+        fprintf(stderr, "%s : could not restore permissions for %s\n", PROGRAM_NAME, filename);
     }
     err = chown(filename, statinfo->st_uid, statinfo->st_gid);
     if(err) {
-        fprintf(stderr, "endlines : could not restore ownership for %s\n", filename);
+        fprintf(stderr, "%s : could not restore ownership for %s\n", PROGRAM_NAME, filename);
     }
 
     return CAN_CONTINUE;
 }
+
+
+FileOp_Status
+make_filename_in_same_location(char *reference_name_and_path, char *wanted_name, char *destination)
+{
+    int reflen = (int)strlen(reference_name_and_path);
+    if(reflen>=WALKERS_MAX_PATH_LENGTH) {
+        fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
+                PROGRAM_NAME, reference_name_and_path);
+        return FILEOP_ERROR;
+    }
+    int filename_start = reflen;
+    while(filename_start > 0) {
+        filename_start --;
+        if(reference_name_and_path[filename_start]=='/') {
+            filename_start ++;
+            break;
+        }
+    }
+    int wanted_length = (int)strlen(wanted_name);
+    if(wanted_length + filename_start + 1 >= WALKERS_MAX_PATH_LENGTH) {
+        fprintf(stderr, "%s : pathname exceeding maximum length : %s on %s\n",
+                PROGRAM_NAME, wanted_name, reference_name_and_path);
+        return FILEOP_ERROR;
+    }
+    strcpy(destination, reference_name_and_path);
+    strcpy(&(destination[filename_start]), wanted_name);
+    return CAN_CONTINUE;
+}
+
