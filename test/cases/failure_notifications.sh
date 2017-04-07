@@ -1,7 +1,7 @@
 #!/bin/bash
 ./clean_sandbox.sh
 
-$ENDLINES unix doesnotexist 2>sandbox/notexisttest >/dev/null
+$ENDLINES unix doesnotexist >sandbox/notexisttest 2>/dev/null
 DOESNOTEXIST=`cat sandbox/notexisttest`
 if [[ $DOESNOTEXIST == *"an not read"* ]]
 then
@@ -14,7 +14,7 @@ fi
 
 cp data/unixref sandbox/noreadtest
 chmod -r sandbox/noreadtest
-$ENDLINES unix sandbox/noreadtest 2>sandbox/noreadresulttest >/dev/null
+$ENDLINES unix sandbox/noreadtest >sandbox/noreadresulttest 2>/dev/null
 NOREAD=`cat sandbox/noreadresulttest`
 if [[ $NOREAD == *"can not read"* ]]
 then
@@ -28,7 +28,7 @@ chmod +r sandbox/noreadtest
 
 cp data/unixref sandbox/nowritetest
 chmod -w sandbox/nowritetest
-$ENDLINES unix sandbox/nowritetest 2>sandbox/nowriteresulttest >/dev/null
+$ENDLINES unix sandbox/nowritetest >sandbox/nowriteresulttest 2>/dev/null
 NOWRITE=`cat sandbox/nowriteresulttest`
 if [[ $NOWRITE == *"can not write"* ]]
 then

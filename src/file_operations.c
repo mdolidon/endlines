@@ -39,11 +39,11 @@ open_input_file_for_conversion(FILE **in, char *in_filename)
 {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
-        fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
+        fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
         return FILEOP_ERROR;
     }
     if(access(in_filename, W_OK)) {
-        fprintf(stderr, "%s : can not write over %s\n", PROGRAM_NAME, in_filename);
+        fprintf(stdout, "%s : can not write over %s\n", PROGRAM_NAME, in_filename);
         fclose(*in);
         return FILEOP_ERROR;
     }
@@ -56,7 +56,7 @@ open_temporary_file(FILE **out, char *tmp_filename)
 {
     *out = fopen(tmp_filename, "wb");
     if(*out == NULL) {
-        fprintf(stderr, "%s : can not create %s\n", PROGRAM_NAME, tmp_filename);
+        fprintf(stdout, "%s : can not create %s\n", PROGRAM_NAME, tmp_filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
@@ -68,7 +68,7 @@ open_input_file_for_dry_run(FILE **in, char *in_filename)
 {
     *in = fopen(in_filename, "rb");
     if(*in == NULL) {
-        fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
+        fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
@@ -80,13 +80,13 @@ move_temp_file_to_destination(char *tmp_filename, char *filename, struct stat *s
 {
     int err = remove(filename);
     if(err) {
-        fprintf(stderr, "%s : can not write over %s\n", PROGRAM_NAME, filename);
+        fprintf(stdout, "%s : can not write over %s\n", PROGRAM_NAME, filename);
         remove(tmp_filename);
         return FILEOP_ERROR;
     }
     err = rename(tmp_filename, filename);
     if(err) {
-        fprintf(stderr, "%s : can not restore %s\n"
+        fprintf(stdout, "%s : can not restore %s\n"
                         "  -- Fail safe reaction : aborting.\n"
                         "  -- You will find your data in %s\n"
                         "  -- Please rename it manually to %s\n"
@@ -97,11 +97,11 @@ move_temp_file_to_destination(char *tmp_filename, char *filename, struct stat *s
     }
     err = chmod(filename, statinfo->st_mode);
     if(err) {
-        fprintf(stderr, "%s : could not restore permissions for %s\n", PROGRAM_NAME, filename);
+        fprintf(stdout, "%s : could not restore permissions for %s\n", PROGRAM_NAME, filename);
     }
     err = chown(filename, statinfo->st_uid, statinfo->st_gid);
     if(err) {
-        fprintf(stderr, "%s : could not restore ownership for %s\n", PROGRAM_NAME, filename);
+        fprintf(stdout, "%s : could not restore ownership for %s\n", PROGRAM_NAME, filename);
     }
 
     return CAN_CONTINUE;
@@ -113,7 +113,7 @@ make_filename_in_same_location(char *reference_name_and_path, char *wanted_name,
 {
     int reflen = (int)strlen(reference_name_and_path);
     if(reflen>=WALKERS_MAX_PATH_LENGTH) {
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
+        fprintf(stdout, "%s : pathname exceeding maximum length : %s\n",
                 PROGRAM_NAME, reference_name_and_path);
         return FILEOP_ERROR;
     }
@@ -127,7 +127,7 @@ make_filename_in_same_location(char *reference_name_and_path, char *wanted_name,
     }
     int wanted_length = (int)strlen(wanted_name);
     if(wanted_length + filename_start + 1 >= WALKERS_MAX_PATH_LENGTH) {
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s on %s\n",
+        fprintf(stdout, "%s : pathname exceeding maximum length : %s on %s\n",
                 PROGRAM_NAME, wanted_name, reference_name_and_path);
         return FILEOP_ERROR;
     }

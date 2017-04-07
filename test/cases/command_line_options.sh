@@ -23,7 +23,7 @@ fi
 
 
 cp data/abin sandbox/abintest
-$ENDLINES unix -v sandbox/abintest 2>sandbox/bintest >/dev/null
+$ENDLINES unix -v sandbox/abintest >sandbox/bintest
 BINARY=`cat sandbox/bintest`
 if [[ $BINARY == *skipped* ]]
 then
@@ -34,7 +34,7 @@ else
 fi
 
 cp data/abin sandbox/bbintest
-$ENDLINES unix -v -b sandbox/bbintest 2>sandbox/binforcetest >/dev/null
+$ENDLINES unix -v -b sandbox/bbintest >sandbox/binforcetest
 BINARYFORCE=`cat sandbox/binforcetest`
 if [[ $BINARYFORCE != *skipped* ]]
 then
@@ -45,7 +45,7 @@ else
 fi
 
 cp data/bin_as_per_extension.exe sandbox/bin_as_per_extension_test.exe
-$ENDLINES unix -v sandbox/bin_as_per_extension_test.exe 2>sandbox/extbintest >/dev/null
+$ENDLINES unix -v sandbox/bin_as_per_extension_test.exe >sandbox/extbintest
 EXTBINARY=`cat sandbox/extbintest`
 if [[ $EXTBINARY == *skipped* ]]
 then
@@ -56,7 +56,7 @@ else
 fi
 
 cp data/bin_as_per_extension.exe sandbox/bin_as_per_extension_forced_test.exe
-$ENDLINES unix -v -b sandbox/bbintest 2>sandbox/extbinforcetest >/dev/null
+$ENDLINES unix -v -b sandbox/bbintest >sandbox/extbinforcetest
 EXTBINARYFORCE=`cat sandbox/extbinforcetest`
 if [[ $EXTBINARYFORCE != *skipped* ]]
 then

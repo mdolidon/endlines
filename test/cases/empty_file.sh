@@ -3,7 +3,7 @@
 
 touch sandbox/empty
 EMPTYREF=`$MD5<sandbox/empty`
-$ENDLINES unix sandbox/empty 2>/dev/null
+$ENDLINES unix sandbox/empty >/dev/null
 EMPTYTEST=`$MD5<sandbox/empty`
 if [[ "$EMPTYREF" == "$EMPTYTEST" ]]
 then

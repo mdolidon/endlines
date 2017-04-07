@@ -46,7 +46,7 @@ static void
 skip_a_hidden_file(char *filename, Walk_tracker *tracker)
 {
     if(tracker->verbose) {
-        fprintf(stderr, "%s : skipped hidden file : %s\n", PROGRAM_NAME, filename);
+        fprintf(stdout, "%s : skipped hidden file : %s\n", PROGRAM_NAME, filename);
     }
     ++ tracker->skipped_hidden_files_count;
 }
@@ -54,7 +54,7 @@ skip_a_hidden_file(char *filename, Walk_tracker *tracker)
 static void
 found_an_unreadable_file(char *filename, Walk_tracker *tracker)
 {
-    fprintf(stderr, "%s : can not read %s\n", PROGRAM_NAME, filename);
+    fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, filename);
     ++ tracker->read_errors_count;
 }
 
@@ -65,7 +65,7 @@ found_a_directory(char *filename, Walk_tracker *tracker)
         walk_directory(filename, tracker);
     } else {
         if(tracker->verbose) {
-            fprintf(stderr, "%s : skipped directory : %s\n", PROGRAM_NAME, filename);
+            fprintf(stdout, "%s : skipped directory : %s\n", PROGRAM_NAME, filename);
         }
         ++ tracker->skipped_directories_count;
     }
@@ -151,7 +151,7 @@ append_filename_to_base_path(char *base_path, int base_path_length, char *filena
     size_t filename_length = strlen(filename);
     size_t total_length = base_path_length + filename_length + 1; // +1 for a slash
     if(total_length >= WALKERS_MAX_PATH_LENGTH) {                // +1 for the terminating 0
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s/%s\n",
+        fprintf(stdout, "%s : pathname exceeding maximum length : %s/%s\n",
                 PROGRAM_NAME, base_path, filename);
         return 1;
     }
@@ -179,14 +179,14 @@ prepare_to_walk_a_directory(char *directory_name, int dirname_length,
                             char *file_path_buffer, DIR **p_pdir)
 {
     if(dirname_length+1 >= WALKERS_MAX_PATH_LENGTH) {
-        fprintf(stderr, "%s : pathname exceeding maximum length : %s\n",
+        fprintf(stdout, "%s : pathname exceeding maximum length : %s\n",
                 PROGRAM_NAME, directory_name);
         return -1;
     }
     strcpy(file_path_buffer, directory_name);
     *p_pdir = opendir(directory_name);
     if(*p_pdir == NULL) {
-        fprintf(stderr, "%s : can not open directory %s\n", PROGRAM_NAME, directory_name);
+        fprintf(stdout, "%s : can not open directory %s\n", PROGRAM_NAME, directory_name);
         return -1;
     }
     return 0;

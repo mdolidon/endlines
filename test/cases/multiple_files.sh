@@ -7,7 +7,7 @@ cp data/unixref sandbox/dummydir/donttouch
 cp data/unixref sandbox/multi1test
 cp data/unixref sandbox/multi2test
 cp data/unixref sandbox/multi3test
-$ENDLINES win -q sandbox/dummydir nonexistent sandbox/multi1test sandbox/multi2test sandbox/multi3test 2>/dev/null
+$ENDLINES win -q sandbox/dummydir nonexistent sandbox/multi1test sandbox/multi2test sandbox/multi3test >/dev/null 2>/dev/null
 
 WINREF=`$MD5<data/winref`
 MULTIONE=`$MD5<sandbox/multi1test`

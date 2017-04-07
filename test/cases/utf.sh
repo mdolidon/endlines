@@ -2,7 +2,7 @@
 ./clean_sandbox.sh
 
 cp data/utf8unixref sandbox/utf8test
-$ENDLINES win sandbox/utf8test 2>/dev/null
+$ENDLINES win sandbox/utf8test >/dev/null
 
 
 UTF8EXPECTED=`$MD5<data/utf8winref`
@@ -20,7 +20,7 @@ fi
 
 
 cp data/utf16le_unix_ref sandbox/utf16letest
-$ENDLINES win sandbox/utf16letest 2>/dev/null
+$ENDLINES win sandbox/utf16letest >/dev/null
 
 
 UTF16LEEXPECTED=`$MD5<data/utf16le_win_ref`
@@ -38,7 +38,7 @@ fi
 
 
 cp data/utf16be_unix_ref sandbox/utf16betest
-$ENDLINES win sandbox/utf16betest 2>/dev/null
+$ENDLINES win sandbox/utf16betest >/dev/null
 
 
 UTF16BEEXPECTED=`$MD5<data/utf16be_win_ref`
