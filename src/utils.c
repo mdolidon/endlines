@@ -84,7 +84,7 @@ display_help_and_quit()
                     "  If no files are specified, %s converts from stdin to stdout.\n"
                     "  Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.\n\n"
 
-                    "  General   -f / --final    : add EOL at end of text files if none.\n"
+                    "  General   -f / --final    : add final EOL if none.\n"
                     "            -q / --quiet    : silence all but the error messages.\n"
                     "            -v / --verbose  : print more about what's going on.\n"
                     "            --version       : print version and license.\n\n"

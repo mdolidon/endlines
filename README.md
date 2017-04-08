@@ -42,7 +42,7 @@ Let the help screen say it all :
       If no files are specified, endlines converts from stdin to stdout.
       Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.
     
-      General   -f / --final    : add EOL at end of text files if none.
+      General   -f / --final    : add final EOL if none.
                 -q / --quiet    : silence all but the error messages.
                 -v / --verbose  : print more about what's going on.
                 --version       : print version and license.
