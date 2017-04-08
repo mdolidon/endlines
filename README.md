@@ -1,5 +1,5 @@
-| Version 1.8.3 | Apache License 2.0 |
-| ----------------- | ------------------ |
+| Version 1.9 | Apache License 2.0 |
+| ----------- | ------------------ |
 
 Did your source code get polluted by scattered `^M`'s ? 
 
@@ -42,7 +42,8 @@ Let the help screen say it all :
       If no files are specified, endlines converts from stdin to stdout.
       Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.
     
-      General   -q / --quiet    : silence all but the error messages.
+      General   -f / --final    : add EOL at end of text files if none.
+                -q / --quiet    : silence all but the error messages.
                 -v / --verbose  : print more about what's going on.
                 --version       : print version and license.
     
@@ -78,13 +79,9 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 
 ## News
 
-Version 1.8.3 got a minor fix on convention counts after a Valgrind analysis.
+Version 1.9 got the "--final" option, outputs normal messages to standard output instead of standard error stream, and allows short flags collapsing.
 
-Version 1.8.2 got more verbose when converting standard streams.
-
-Version 1.8.1 should fix the build issue with OSX.
-
-Version 1.8 is safe for concurrent launches. A build issue has been found for Apple OSX.
+Versions 1.8.x got safe for concurrent launches.
 
 Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose. Besides, I don't have a Mac anymore, and this will be the last version that I can compile for OSX by myself. If somebody is willing to provide support with OSX builds, I'll be glad to team up. Please just open an issue.
 
