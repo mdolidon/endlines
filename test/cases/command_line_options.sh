@@ -84,5 +84,36 @@ fi
 
 
 
+cp data/single_line_no_newline sandbox/noeol
+NOEOLREF=`$MD5<data/single_line_no_newline`
+UNIXEOLREF=`$MD5<data/single_line_unix_newline`
+WINEOLREF=`$MD5<data/single_line_win_newline`
+
+$ENDLINES win sandbox/noeol >/dev/null
+NOEOL_OUT=`$MD5<sandbox/noeol`
+if [[ $NOEOL_OUT == $NOEOLREF ]]
+then
+    echo "OK : no new-line gets added without the --final flag"
+else
+    echo "FAILURE : a file without a final eol was changed without the --final flag"
+fi
 
 
+$ENDLINES win sandbox/noeol --final >/dev/null
+NOEOL_FINAL_OUT=`$MD5<sandbox/noeol`
+if [[ $NOEOL_FINAL_OUT == $WINEOLREF ]]
+then
+    echo "OK : a new-line was added by the --final flag to a text without final eol"
+else
+    echo "FAILURE : a run with the --final flag did not yield the expected output"
+fi
+
+
+$ENDLINES unix sandbox/noeol --final >/dev/null
+NOEOL_FINAL_OUT_2=`$MD5<sandbox/noeol`
+if [[ $NOEOL_FINAL_OUT_2 == $UNIXEOLREF ]]
+then
+    echo "OK : no new-line was added by the --final flag to a text that already had a final eol"
+else
+    echo "FAILURE : a run with the --final flag did not yield the expected output"
+fi

@@ -280,6 +280,7 @@ convert_stream(Conversion_Parameters p)
 
     word_t word;
     bool last_was_13 = false;
+    bool last_was_newline = false;
 
     while(true) {
         word = pull_word(&input_stream);
@@ -287,6 +288,7 @@ convert_stream(Conversion_Parameters p)
             break;
         }
         if(is_non_text_char(word)) {
+            last_was_newline = false;
             report.contains_non_text_chars = true;
             if(p.interrupt_if_non_text) {
                 break;
@@ -296,9 +298,11 @@ convert_stream(Conversion_Parameters p)
             err = push_newline(p.dst_convention, &output_stream);
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
+            last_was_newline = true;
         } else if(word == 10) {
             if(!last_was_13) {
                 err = push_newline(p.dst_convention, &output_stream);
+                last_was_newline = true;
                 ++ report.count_by_convention[LF];
                 if(p.interrupt_if_not_like_dst_convention && p.dst_convention != LF) {
                     break;
@@ -306,6 +310,7 @@ convert_stream(Conversion_Parameters p)
             } else {
                 -- report.count_by_convention[CR];
                 ++ report.count_by_convention[CRLF];
+                last_was_newline = true;
                 if(p.interrupt_if_not_like_dst_convention && p.dst_convention != CRLF) {
                     break;
                 }
@@ -314,10 +319,15 @@ convert_stream(Conversion_Parameters p)
         } else {
             err = push_word(word, &output_stream);
             last_was_13 = false;
+            last_was_newline = false;
         }
         if(err) {
             break;
         }
+    }
+
+    if(p.final_char_has_to_be_eol && !last_was_newline) {
+        err = push_newline(p.dst_convention, &output_stream);
     }
     err = err || flush_buffer(&output_stream);
 
