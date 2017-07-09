@@ -95,7 +95,7 @@ display_help_and_quit()
                     "            -r / --recurse  : recurse into directories.\n\n"
 
                     "  Examples  %s check *.txt\n"
-                    "            %s linux -k -r aFolder anotherFolder\n\n",
+                    "            %s linux -kr aFolder anotherFolder\n\n",
             PROGRAM_NAME, PROGRAM_NAME, PROGRAM_NAME, PROGRAM_NAME);
     exit(EXIT_FAILURE);
 }

@@ -20,7 +20,7 @@
 #define _ENDLINES_H_
 
 #define PROGRAM_NAME "endlines"
-#define VERSION "1.9"
+#define VERSION "1.9.1"
 #define BUFFERSIZE 16384
 #define TMP_FILENAME_BASE ".tmp_endlines_"
 

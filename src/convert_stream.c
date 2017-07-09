@@ -23,7 +23,7 @@
 
 // Word as in "binary word", not as in "english word"
 
-typedef unsigned int word_t; 
+typedef unsigned int word_t;
 
 typedef enum {
     WT_1BYTE,
@@ -327,7 +327,7 @@ convert_stream(Conversion_Parameters p)
     }
 
     if(p.final_char_has_to_be_eol && !last_was_newline) {
-        err = push_newline(p.dst_convention, &output_stream);
+        err = err || push_newline(p.dst_convention, &output_stream);
     }
     err = err || flush_buffer(&output_stream);
 
