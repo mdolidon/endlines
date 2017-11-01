@@ -79,10 +79,9 @@ Endlines *may* compile and run on Windows provided the proper POSIX header files
 
 ## News
 
-Version 1.9.1 fixes a theoritical corner-case where a read-error during the second pass would not be properly reported, only while the `--final` flag is used.
+Version 1.9.1 fixes a theoritical corner-case where a read-error during the second pass would not be properly reported, only while the `--final` flag is used. OSX version kindly compiled and offered by @biziclop
 
 Versions 1.9 got the "--final" option, outputs normal messages to standard output instead of standard error stream, and allows short flags collapsing.
 
 Versions 1.8.x got safe for concurrent launches.
 
-Version 1.7 embeds the speed and robustness improvements of quickly paced previous versions. I strongly encourage you to upgrade. I removed the tags on purpose. Besides, I don't have a Mac anymore, and this will be the last version that I can compile for OSX by myself. If somebody is willing to provide support with OSX builds, I'll be glad to team up. Please just open an issue.
