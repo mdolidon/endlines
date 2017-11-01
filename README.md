@@ -28,35 +28,13 @@ Endlines smartly converts text files from and to the following line ending conve
                480 hidden files skipped
 ```
 
-Let the help screen say it all :
-
-
-      endlines ACTION [OPTIONS] [FILES]
-
-      ACTION can be :
-        lf, unix, linux, osx    : convert all endings to LF.
-        crlf, windows, win, dos : convert all endings to CR-LF.
-        cr, oldmac              : convert all endings to CR.
-        check                   : perform a dry run to check current conventions.
-
-      If no files are specified, endlines converts from stdin to stdout.
-      Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.
-
-      General   -f / --final    : add final EOL if none.
-                -q / --quiet    : silence all but the error messages.
-                -v / --verbose  : print more about what's going on.
-                --version       : print version and license.
-
-      Files     -b / --binaries : don't skip binary files.
-                -h / --hidden   : process hidden files (/directories) too.
-                -k / --keepdate : keep last modified and last access times.
-                -r / --recurse  : recurse into directories.
-
-      Examples  endlines check *.txt
-                endlines linux -kr aFolder anotherFolder
-
 
 ## Install
+
+### From Debian package
+
+For Linux/AMD64, you'll find the `endlines-1.9.1-amd64.deb` file in the `binaries` folder. You can install it with a GUI installer (like gdebi) or run `sudo dpkg --install endlines-1.9.1-amd64.deb` from the command line.
+
 
 ### From binaries
 
@@ -66,22 +44,6 @@ The `binaries` folder contains precompiled binaries for Linux/AMD64 and OSX. You
 ### From source
 
 - Local install : `make; make test` ; if satisfied, move the `endlines` executable to your local path.
-- Global install : `make; make test; sudo make install` should suffice.
+- Global install : `make; make test; sudo make install` will put an `endlines` executable in `/usr/local/bin`.
 
-
-
-## Operating systems
-
-Endlines is known to have been compiled and run out of the box on Apple OSX, several Linux distributions and IBM AIX. I provide support for all POSIX compliant operating sytems.
-
-Endlines *may* compile and run on Windows provided the proper POSIX header files are available. I won't provide any support for it, but pull requests helping with Windows support will be welcome.
-
-
-## News
-
-Version 1.9.1 fixes a theoritical corner-case where a read-error during the second pass would not be properly reported, only while the `--final` flag is used. OSX version kindly compiled and offered by @biziclop
-
-Versions 1.9 got the "--final" option, outputs normal messages to standard output instead of standard error stream, and allows short flags collapsing.
-
-Versions 1.8.x got safe for concurrent launches.
-
+Endlines is known to have been compiled and run out of the box on Apple OSX, several Linux distributions and IBM AIX. I provide support for all POSIX compliant operating sytems. I won't provide any support for Windows, but pull requests dealing with it will be welcome.
