@@ -495,6 +495,7 @@ make_tracker(Invocation *invocation, Batch_outcome_accumulator *accumulator)
 {
     Walk_tracker t = make_default_walk_tracker();
 
+    t.program_name = PROGRAM_NAME;
     t.process_file = &walkers_callback;
     t.accumulator = accumulator;
     t.verbose = invocation->verbose;

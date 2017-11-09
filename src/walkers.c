@@ -46,7 +46,7 @@ static void
 skip_a_hidden_file(char *filename, Walk_tracker *tracker)
 {
     if(tracker->verbose) {
-        fprintf(stdout, "%s : skipped hidden file : %s\n", PROGRAM_NAME, filename);
+        fprintf(stdout, "%s : skipped hidden file : %s\n", tracker->program_name, filename);
     }
     ++ tracker->skipped_hidden_files_count;
 }
@@ -54,7 +54,7 @@ skip_a_hidden_file(char *filename, Walk_tracker *tracker)
 static void
 found_an_unreadable_file(char *filename, Walk_tracker *tracker)
 {
-    fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, filename);
+    fprintf(stdout, "%s : can not read %s\n", tracker->program_name, filename);
     ++ tracker->read_errors_count;
 }
 
@@ -65,7 +65,7 @@ found_a_directory(char *filename, Walk_tracker *tracker)
         walk_directory(filename, tracker);
     } else {
         if(tracker->verbose) {
-            fprintf(stdout, "%s : skipped directory : %s\n", PROGRAM_NAME, filename);
+            fprintf(stdout, "%s : skipped directory : %s\n", tracker->program_name, filename);
         }
         ++ tracker->skipped_directories_count;
     }
@@ -146,13 +146,14 @@ walk_filenames(char **filenames, int file_count, Walk_tracker *tracker)
 
         // returns 0 on success
 static int
-append_filename_to_base_path(char *base_path, int base_path_length, char *filename)
+append_filename_to_base_path(char *base_path, int base_path_length, 
+        char *filename, Walk_tracker *tracker)
 {
     size_t filename_length = strlen(filename);
     size_t total_length = base_path_length + filename_length + 1; // +1 for a slash
     if(total_length >= WALKERS_MAX_PATH_LENGTH) {                // +1 for the terminating 0
         fprintf(stdout, "%s : pathname exceeding maximum length : %s/%s\n",
-                PROGRAM_NAME, base_path, filename);
+                tracker->program_name, base_path, filename);
         return 1;
     }
 
@@ -176,17 +177,18 @@ reset_base_path_termination(char *base_path, int base_path_length)
 // returns 0 on success
 static int
 prepare_to_walk_a_directory(char *directory_name, int dirname_length,
-                            char *file_path_buffer, DIR **p_pdir)
+                            char *file_path_buffer, DIR **p_pdir,
+                            Walk_tracker *tracker)
 {
     if(dirname_length+1 >= WALKERS_MAX_PATH_LENGTH) {
         fprintf(stdout, "%s : pathname exceeding maximum length : %s\n",
-                PROGRAM_NAME, directory_name);
+                tracker->program_name, directory_name);
         return -1;
     }
     strcpy(file_path_buffer, directory_name);
     *p_pdir = opendir(directory_name);
     if(*p_pdir == NULL) {
-        fprintf(stdout, "%s : can not open directory %s\n", PROGRAM_NAME, directory_name);
+        fprintf(stdout, "%s : can not open directory %s\n", tracker->program_name, directory_name);
         return -1;
     }
     return 0;
@@ -200,7 +202,7 @@ walk_directory(char *directory_name, Walk_tracker *tracker)
     DIR *pdir;
 
     int dirname_length = strlen(directory_name);
-    if(prepare_to_walk_a_directory(directory_name, dirname_length, file_path_buffer, &pdir)) {
+    if(prepare_to_walk_a_directory(directory_name, dirname_length, file_path_buffer, &pdir, tracker)) {
         return;
     }
     struct dirent *pent;
@@ -209,7 +211,7 @@ walk_directory(char *directory_name, Walk_tracker *tracker)
         if(strcmp(pent->d_name, ".") == 0 || strcmp(pent->d_name, "..") == 0) {
             continue;
         }
-        if(append_filename_to_base_path(file_path_buffer, dirname_length, pent->d_name)) {
+        if(append_filename_to_base_path(file_path_buffer, dirname_length, pent->d_name, tracker)) {
             continue;
         }
         char *single_filename_array[1] = {file_path_buffer};
