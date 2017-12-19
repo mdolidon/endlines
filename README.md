@@ -29,19 +29,12 @@ Endlines smartly converts text files from and to the following line ending conve
 ```
 
 
-## Install
+## Easy installation
 
-### From Debian package
-
-For Linux/AMD64, you'll find the `endlines-1.9.1-amd64.deb` file in the `binaries` folder. You can install it with a GUI installer (like gdebi) or run `sudo dpkg --install endlines-1.9.1-amd64.deb` from the command line.
+The [download page](https://github.com/mdolidon/endlines/tree/master/download) offers ready-to-eat options for Linux and Apple users.
 
 
-### From binaries
-
-The `binaries` folder contains precompiled binaries for Linux/AMD64 and OSX. You can rename the one that fits you to `endlines` and move it to `/usr/local/bin` or to your local path.
-
-
-### From source
+## Compile your own
 
 - Local install : `make; make test` ; if satisfied, move the `endlines` executable to your local path.
 - Global install : `make; make test; sudo make install` will put an `endlines` executable in `/usr/local/bin`.
