@@ -63,6 +63,7 @@ typedef struct {
     bool interrupt_if_not_like_dst_convention;
     bool interrupt_if_non_text;
     bool final_char_has_to_be_eol;
+    bool honor_platform_semantics;
 } Conversion_Parameters;
 
 typedef struct {

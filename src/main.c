@@ -52,6 +52,7 @@ typedef struct {
     bool recurse;
     bool process_hidden;
     bool final_char_has_to_be_eol;
+    bool honor_platform_semantics;
     char **filenames;
     int file_count;
 } Invocation;
@@ -168,6 +169,12 @@ got_final_char_has_to_be_eol_flag(const char *arg, void *context)
 }
 
 void
+got_honor_platform_semantics(const char *arg, void *context)
+{
+    ((Invocation *)context)->honor_platform_semantics = true;
+}
+
+void
 got_non_flag_arg(char *argument, int arg_index, void *context)
 {
     if(!((Invocation *)context)->dst_convention_specified) {
@@ -188,6 +195,7 @@ parse_endlines_command_line(int argc, char **argv)
       {.short_flag=0,   .long_flag="help",     .callback=got_help_flag},
       {.short_flag=0,   .long_flag="version",  .callback=got_version_flag},
       {.short_flag='f', .long_flag="final",    .callback=got_final_char_has_to_be_eol_flag},
+      {.short_flag='s', .long_flag="semantic", .callback=got_honor_platform_semantics},
       {.short_flag='q', .long_flag="quiet",    .callback=got_quiet_flag},
       {.short_flag='v', .long_flag="verbose",  .callback=got_verbose_flag},
       {.short_flag='k', .long_flag="keepdate", .callback=got_keepdate_flag},
@@ -206,6 +214,7 @@ parse_endlines_command_line(int argc, char **argv)
         .keepdate=false, .verbose=false,
         .recurse=false, .process_hidden=false,
         .final_char_has_to_be_eol=false,
+        .honor_platform_semantics=false,
         .filenames=NULL, .file_count=0
     };
 
@@ -270,7 +279,8 @@ pre_conversion_check(FILE *in, char *filename,
         .dst_convention=invocation->dst_convention,
         .interrupt_if_not_like_dst_convention=true,
         .interrupt_if_non_text=!invocation->binaries,
-        .final_char_has_to_be_eol=false
+        .final_char_has_to_be_eol=false,
+        .honor_platform_semantics=invocation->honor_platform_semantics
     };
     Conversion_Report preliminary_report = convert_stream(p);
 
@@ -283,7 +293,8 @@ pre_conversion_check(FILE *in, char *filename,
         return SKIPPED_BINARY;
     }
     Convention src_convention = get_source_convention(&preliminary_report);
-    if((src_convention == NO_CONVENTION && !invocation->final_char_has_to_be_eol) ||
+    if((src_convention == NO_CONVENTION && !invocation->final_char_has_to_be_eol &&
+        !invocation->honor_platform_semantics) ||
         src_convention == invocation->dst_convention) {
         memcpy(file_report, &preliminary_report, sizeof(Conversion_Report));
         return DONE;
@@ -319,7 +330,8 @@ convert_one_file(char *filename, struct stat *statinfo,
         .dst_convention=invocation->dst_convention,
         .interrupt_if_not_like_dst_convention=false,
         .interrupt_if_non_text=!invocation->binaries,
-        .final_char_has_to_be_eol=invocation->final_char_has_to_be_eol
+        .final_char_has_to_be_eol=invocation->final_char_has_to_be_eol,
+        .honor_platform_semantics=invocation->honor_platform_semantics
     };
     Conversion_Report report = convert_stream(p);
 
@@ -359,7 +371,8 @@ check_one_file(char *filename, Invocation *invocation, Conversion_Report *file_r
         .dst_convention=NO_CONVENTION,
         .interrupt_if_not_like_dst_convention=false,
         .interrupt_if_non_text=!invocation->binaries,
-        .final_char_has_to_be_eol=false
+        .final_char_has_to_be_eol=false,
+        .honor_platform_semantics=invocation->honor_platform_semantics
     };
     Conversion_Report report = convert_stream(p);
 

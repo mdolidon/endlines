@@ -48,6 +48,7 @@ cases/utf.sh
 cases/necessity_checks.sh
 cases/large_file.sh
 cases/command_line_options.sh
+cases/honor_platform_semantics.sh
 cases/multiple_files.sh
 cases/failure_notifications.sh
 
