@@ -279,33 +279,33 @@ convert_stream(Conversion_Parameters p)
     init_report(&report);
 
     word_t word;
-    bool last_was_newline = false;
-    Convention newline_before_word = NO_CONVENTION;
-    Convention newline_after_word = NO_CONVENTION;
+    int newline_before_word = -1;
+    int newline_after_word = -1;
 
     while(true) {
         word = pull_word(&input_stream);
         if(newline_before_word == CR && word == 10) {
             newline_before_word = CRLF;
         } else if(word == 10) {
-            newline_after_word = LF;
+            newline_after_word = LF; // defer until we know if next word is EOF
         } else if(word == 13) {
-            newline_after_word = CR;
-        } else if(input_stream.eof && p.honor_platform_semantics &&
-            newline_before_word == NO_CONVENTION &&
-            (report.count_by_convention[LF] == 0 && report.count_by_convention[CR] == 0)
-        ) {
-            // last input line terminated by EOF
-            newline_before_word = CRLF;
+            newline_after_word = CR; // defer until we know if next word is EOF or LF
+        } else if(input_stream.eof && newline_before_word < 0) {
+            if(p.honor_platform_semantics &&
+                report.count_by_convention[LF] == 0 && report.count_by_convention[CR] == 0
+            ) {
+                newline_before_word = CRLF; // last input line terminated by EOF
+            } else if(p.final_char_has_to_be_eol) {
+                newline_before_word = NO_CONVENTION; // unterminated line
+            }
         }
-        if(newline_before_word != NO_CONVENTION) {
+        if(newline_before_word >= 0) {
             if(input_stream.eof && p.honor_platform_semantics && p.dst_convention == CRLF) {
                 // last output line terminated by EOF
             } else {
                 err = err || push_newline(p.dst_convention, &output_stream);
             }
             ++ report.count_by_convention[newline_before_word];
-            last_was_newline = true;
             if(p.interrupt_if_not_like_dst_convention && p.dst_convention != newline_before_word) {
                 break;
             }
@@ -321,18 +321,14 @@ convert_stream(Conversion_Parameters p)
         }
         if(word != 13 && word != 10) {
             err = err || push_word(word, &output_stream);
-            last_was_newline = false;
         }
         if(err) {
             break;
         }
         newline_before_word = newline_after_word;
-        newline_after_word = NO_CONVENTION;
+        newline_after_word = -1;
     }
 
-    if(p.final_char_has_to_be_eol && !last_was_newline) {
-        err = err || push_newline(p.dst_convention, &output_stream);
-    }
     err = err || flush_buffer(&output_stream);
 
     if(ferror(p.instream)) {

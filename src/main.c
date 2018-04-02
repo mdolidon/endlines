@@ -279,7 +279,7 @@ pre_conversion_check(FILE *in, char *filename,
         .dst_convention=invocation->dst_convention,
         .interrupt_if_not_like_dst_convention=true,
         .interrupt_if_non_text=!invocation->binaries,
-        .final_char_has_to_be_eol=false,
+        .final_char_has_to_be_eol=invocation->final_char_has_to_be_eol,
         .honor_platform_semantics=invocation->honor_platform_semantics
     };
     Conversion_Report preliminary_report = convert_stream(p);
@@ -293,9 +293,8 @@ pre_conversion_check(FILE *in, char *filename,
         return SKIPPED_BINARY;
     }
     Convention src_convention = get_source_convention(&preliminary_report);
-    if((src_convention == NO_CONVENTION && !invocation->final_char_has_to_be_eol &&
-        !invocation->honor_platform_semantics) ||
-        src_convention == invocation->dst_convention) {
+    bool needs_final_eol = preliminary_report.count_by_convention[NO_CONVENTION] > 0;
+    if(src_convention == invocation->dst_convention && !needs_final_eol) {
         memcpy(file_report, &preliminary_report, sizeof(Conversion_Report));
         return DONE;
     }
@@ -585,7 +584,9 @@ void convert_stdin_to_stdout(Invocation *invocation)
         .instream=stdin,
         .outstream= invocation->dst_convention==NO_CONVENTION ? NULL : stdout,
         .dst_convention=invocation->dst_convention,
-        .interrupt_if_non_text=false
+        .interrupt_if_non_text=false,
+        .final_char_has_to_be_eol=invocation->final_char_has_to_be_eol,
+        .honor_platform_semantics=invocation->honor_platform_semantics
     };
     Conversion_Report report = convert_stream(p);
     if(!invocation->quiet) {

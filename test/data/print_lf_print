@@ -1,0 +1,2 @@
+print = { x ∈ unicode ｜x ∈ graph ⋁ (x ∈ space ⋀ x ∉ cntrl) }
+      = graph ∪ (space ∖ cntrl)

@@ -84,11 +84,11 @@ fi
 
 
 
-cp data/single_line_no_newline sandbox/noeol
 NOEOLREF=`$MD5<data/single_line_no_newline`
 UNIXEOLREF=`$MD5<data/single_line_unix_newline`
 WINEOLREF=`$MD5<data/single_line_win_newline`
 
+cp data/single_line_no_newline sandbox/noeol
 $ENDLINES win sandbox/noeol >/dev/null
 NOEOL_OUT=`$MD5<sandbox/noeol`
 if [[ $NOEOL_OUT == $NOEOLREF ]]
@@ -99,6 +99,7 @@ else
 fi
 
 
+cp data/single_line_no_newline sandbox/noeol
 $ENDLINES win sandbox/noeol --final >/dev/null
 NOEOL_FINAL_OUT=`$MD5<sandbox/noeol`
 if [[ $NOEOL_FINAL_OUT == $WINEOLREF ]]
@@ -109,8 +110,9 @@ else
 fi
 
 
-$ENDLINES unix sandbox/noeol --final >/dev/null
-NOEOL_FINAL_OUT_2=`$MD5<sandbox/noeol`
+cp data/single_line_unix_newline sandbox/unixeol
+$ENDLINES unix sandbox/unixeol --final >/dev/null
+NOEOL_FINAL_OUT_2=`$MD5<sandbox/unixeol`
 if [[ $NOEOL_FINAL_OUT_2 == $UNIXEOLREF ]]
 then
     echo "OK : no new-line was added by the --final flag to a text that already had a final eol"
