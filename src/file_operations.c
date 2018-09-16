@@ -24,6 +24,9 @@
 #include <unistd.h>
 
 
+// SEE endlines.h FOR INTERFACE DOCUMENTATION
+
+
 struct utimbuf
 get_file_times(struct stat *statinfo)
 {
@@ -35,16 +38,10 @@ get_file_times(struct stat *statinfo)
 
 
 FileOp_Status
-open_input_file_for_conversion(FILE **in, char *in_filename)
+check_write_access(char *filename)
 {
-    *in = fopen(in_filename, "rb");
-    if(*in == NULL) {
-        fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
-        return FILEOP_ERROR;
-    }
-    if(access(in_filename, W_OK)) {
-        fprintf(stdout, "%s : can not write over %s\n", PROGRAM_NAME, in_filename);
-        fclose(*in);
+    if(access(filename, W_OK)) {
+        fprintf(stdout, "%s : can not write over %s\n", PROGRAM_NAME, filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;
@@ -52,23 +49,23 @@ open_input_file_for_conversion(FILE **in, char *in_filename)
 
 
 FileOp_Status
-open_temporary_file(FILE **out, char *tmp_filename)
+open_to_read(FILE **in, char *in_filename)
+{
+    *in = fopen(in_filename, "rb");
+    if(*in == NULL) {
+        fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
+        return FILEOP_ERROR;
+    }
+    return CAN_CONTINUE;
+}
+
+
+FileOp_Status
+open_to_write(FILE **out, char *tmp_filename)
 {
     *out = fopen(tmp_filename, "wb");
     if(*out == NULL) {
         fprintf(stdout, "%s : can not create %s\n", PROGRAM_NAME, tmp_filename);
-        return FILEOP_ERROR;
-    }
-    return CAN_CONTINUE;
-}
-
-
-FileOp_Status
-open_input_file_for_dry_run(FILE **in, char *in_filename)
-{
-    *in = fopen(in_filename, "rb");
-    if(*in == NULL) {
-        fprintf(stdout, "%s : can not read %s\n", PROGRAM_NAME, in_filename);
         return FILEOP_ERROR;
     }
     return CAN_CONTINUE;

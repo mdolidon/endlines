@@ -74,6 +74,8 @@ typedef struct {
 
 
 // =============== ALL ABOUT CONVENTION NAMES ===============
+//
+// See endlines.h for the convention constants and CONVENTIONS_TABLE.
 
 const cmd_line_args_to_convention cl_names[] = {
     {.name="check",   .convention=NO_CONVENTION},
@@ -112,6 +114,7 @@ const char *convention_short_display_names[CONVENTIONS_COUNT] = {CONVENTIONS_TAB
 
 
 // =============== PARSING COMMAND LINE OPTIONS ===============
+// See command_line_parser.h for the documentation of the interfaces used here.
 
 void
 got_help_flag(const char *arg, void *context)
@@ -259,6 +262,11 @@ initialize_session_tmp_filename(char *session_tmp_filename)
 }
 
 
+// This function's purpose is to scan a file and let us avoid to 
+// run the whole conversion process for files that don't need it.
+// (binaries, or already in the wanted convention).
+// Running the pre_conversion_check can speed-up endlines by a large factor.
+// pre_conversion_check is normally called by the convert_one_file function.
 FileOp_Status
 pre_conversion_check(FILE *in, char *filename,
                      Conversion_Report *file_report,
@@ -292,6 +300,16 @@ pre_conversion_check(FILE *in, char *filename,
 }
 
 
+
+// convert_one_file : drives the whole conversion sequence for one file,
+//                    and fills in the file_report according to the findings.
+// Parameters :
+//    - filename
+//    - statinfo : the file's original stat info, that will be reused when writing the
+//                 resulting file. Passing it as a parameter allows us to avoid multiple
+//                 calls to stat.
+//    - invocation
+//    - file_report : this is an out-parameter ; it is up to the caller to allocate it.
 FileOp_Status
 convert_one_file(char *filename, struct stat *statinfo,
         Invocation *invocation,
@@ -307,11 +325,12 @@ convert_one_file(char *filename, struct stat *statinfo,
     char local_tmp_file_name[WALKERS_MAX_PATH_LENGTH];
     struct utimbuf original_file_times = get_file_times(statinfo);
 
-    TRY open_input_file_for_conversion(&in, filename); CATCH
+    TRY check_write_access(filename); CATCH
+    TRY open_to_read(&in, filename); CATCH
     TRY pre_conversion_check(in, filename, file_report, invocation); CATCH_CLOSE_IN
     rewind(in);
     TRY make_filename_in_same_location(filename, session_tmp_filename, local_tmp_file_name); CATCH_CLOSE_IN
-    TRY open_temporary_file(&out, local_tmp_file_name); CATCH_CLOSE_IN
+    TRY open_to_write(&out, local_tmp_file_name); CATCH_CLOSE_IN
 
     Conversion_Parameters p = {
         .instream=in,
@@ -346,12 +365,19 @@ convert_one_file(char *filename, struct stat *statinfo,
 }
 
 
+
+// check_one_file : reads one file, and fills in the file_report according to the findings.
+// Parameters :
+//    - filename
+//    - invocation
+//    - file_report : this is an out-parameter ; it is up to the caller to allocate it.
+
 FileOp_Status
 check_one_file(char *filename, Invocation *invocation, Conversion_Report *file_report)
 {
     FileOp_Status partial_status;
     FILE *in  = NULL;
-    TRY open_input_file_for_dry_run(&in, filename); CATCH
+    TRY open_to_read(&in, filename); CATCH
 
     Conversion_Parameters p = {
         .instream=in,
@@ -448,6 +474,8 @@ print_outcome_totals(Outcome_totals_for_display t)
 }
 
 
+// This function is called for each file seen by the directory walker. See walkers.h
+// Noticeably, p_accumulator is the context object that is passed across calls.
 void
 walkers_callback(char *filename, struct stat *statinfo, void *p_accumulator)
 {
@@ -475,6 +503,8 @@ walkers_callback(char *filename, struct stat *statinfo, void *p_accumulator)
 }
 
 
+// Initializes the context object that will be kept over the whole
+// directory walking process.
 Batch_outcome_accumulator
 make_accumulator(Invocation *invocation)
 {
@@ -538,6 +568,7 @@ convert_files(Invocation *invocation)
 }
 
 // ============== HANDLING THE CONVERSION OF STANDARD STREAMS ===============
+// This is when we don't convert files, but we convert from stdin to stdout.
 
 void print_stream_conversion_outcome(Conversion_Parameters *parameters, Conversion_Report *report)
 {

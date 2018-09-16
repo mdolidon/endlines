@@ -21,6 +21,12 @@
 #include <stdlib.h>
 
 
+// SEE endlines.h FOR INTERFACE DOCUMENTATION
+
+
+
+
+
 // Word as in "binary word", not as in "english word"
 
 typedef unsigned int word_t;
@@ -43,7 +49,7 @@ typedef enum {
 
 typedef struct {
     FILE *stream;
-    BYTE buffer[BUFFERSIZE];
+    BYTE buffer[BUFFERSIZE]; // BUFFERSIZE is defined in endlines.h
     int buf_size;
     int buf_ptr;
     bool eof;
@@ -215,7 +221,7 @@ pull_byte(Buffered_stream *b)
     }
 }
 
-// function pointer was 20% slower than a big switch
+// again, function pointer was 20% slower than a big switch
 static inline word_t
 pull_word(Buffered_stream *b)
 {

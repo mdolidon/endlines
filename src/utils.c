@@ -24,6 +24,10 @@
 #include <string.h>
 
 
+// SEE endlines.h FOR INTERFACE DOCUMENTATION
+
+
+
 Convention
 get_source_convention(Conversion_Report *file_report)
 {
