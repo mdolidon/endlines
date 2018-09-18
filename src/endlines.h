@@ -134,9 +134,9 @@ typedef struct {
     FILE *outstream;             // stream into which to write the converted contents
                                  // (outstream can be NULL)
     Convention dst_convention;   // convention into which to convert
-    bool interrupt_if_not_like_dst_convention;  // exit prematurely if the input contents
+    bool interrupt_if_not_like_dst_convention;  // return prematurely if the input contents
                                                 // use a different convention than our destination convention
-    bool interrupt_if_non_text;        // exit prematurely if the input contents contain
+    bool interrupt_if_non_text;        // return prematurely if the input contents contain
                                        // non-text characters
     bool final_char_has_to_be_eol;  // add a final end-of-line marker if there's none
 } Conversion_Parameters;
@@ -156,15 +156,26 @@ typedef struct {
 } Conversion_Report;
 
 
-
 Conversion_Report convert_stream(Conversion_Parameters p);
 
 
+
+
 // utils.c
-bool       has_known_binary_file_extension(char*);
-Convention get_source_convention(Conversion_Report*);
-void       display_help_and_quit();
-void       display_version_and_quit();
+
+
+// returns true if filename ends with an extension that typically belongs to binary files
+// (such as "picture.png" or "payroll.xls")
+bool has_known_binary_file_extension(char* filename); 
+                                                            
+
+// from a report produced by convert_stream, returns the type of convention that was used
+// in the file or stream that matches this report (including NO_CONVENTION or MIXED)
+Convention get_source_convention(Conversion_Report* report); 
+                                                             
+
+void display_help_and_quit();
+void display_version_and_quit();
 
 
 #endif

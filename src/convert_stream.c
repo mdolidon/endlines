@@ -25,17 +25,26 @@
 
 
 
+// This module exports the convert_stream function. You'll find it at the end of the file.
+// That is the function that actually pipes one stream into another
+// while changing line terminators inbetween.
+
+// The file begins with the implementation of a simple buffered IO mechanism for streams.
+// These IO functions are talked to in terms of code-points, and read/write those code-points
+// into streams with one of the three following encodings : 8 bit, 16 bit little-endian, or 16 bit big-endian.
+
+// In our particular case, treating UTF-8 as a simple 8 bit encoding works fine, as the only particular
+// characters we look for have code-points smaller than 128.
 
 
-// Word as in "binary word", not as in "english word"
 
-typedef unsigned int word_t;
+typedef unsigned int code_point_t;
 
 typedef enum {
     WT_1BYTE,
     WT_2BYTE_LE,
     WT_2BYTE_BE
-} Word_layout;
+} Encoding_layout;
 
 
 // BUFFERED STREAM STRUCTURE DEFINITION AND INSTANCIATION
@@ -53,13 +62,13 @@ typedef struct {
     int buf_size;
     int buf_ptr;
     bool eof;
-    Word_layout wordLayout;
+    Encoding_layout encoding_layout;
 } Buffered_stream;
 
 
 // forward declarations
 static inline void read_stream_frame(Buffered_stream*);
-static Word_layout detect_buffer_word_layout(Buffered_stream*);
+static Encoding_layout detect_buffer_encoding_layout(Buffered_stream*);
 
 
 static inline void
@@ -76,25 +85,25 @@ setup_input_buffered_stream(Buffered_stream *b, FILE *stream)
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = BUFFERSIZE;
     read_stream_frame(b);
-    b->wordLayout = detect_buffer_word_layout(b);
+    b->encoding_layout = detect_buffer_encoding_layout(b);
 }
 
 static inline void
-setup_output_buffered_stream(Buffered_stream *b, FILE *stream, Word_layout wordLayout)
+setup_output_buffered_stream(Buffered_stream *b, FILE *stream, Encoding_layout encoding_layout)
 {
     setup_base_buffered_stream(b, stream);
     b->buf_ptr = 0;
-    b->wordLayout = wordLayout;
+    b->encoding_layout = encoding_layout;
 }
 
 
-// WORD LAYOUT DETECTION
+// ENCODING LAYOUT DETECTION
 // BOM based only for now
 // Precondition : expects the buffer to have been filled up with
 // the head of the stream data, and not have been read from yet.
 
-static Word_layout
-detect_buffer_word_layout(Buffered_stream *b)
+static Encoding_layout
+detect_buffer_encoding_layout(Buffered_stream *b)
 {
     if(b->buf_size >= 2) {
         if(b->buffer[0] == 0xFF && b->buffer[1] == 0xFE) {
@@ -143,11 +152,11 @@ push_byte(BYTE value, Buffered_stream *b)
 
 // function pointer was 20% slower than a big switch
 static inline bool
-push_word(word_t w, Buffered_stream *b)
+push_code_point(code_point_t w, Buffered_stream *b)
 {
     bool err = false;
     if(b->stream) {
-        switch(b->wordLayout) {
+        switch(b->encoding_layout) {
         case WT_1BYTE:
             err = err || push_byte( (w & 0x000000FF), b);
             break;
@@ -160,8 +169,8 @@ push_word(word_t w, Buffered_stream *b)
             err = err || push_byte( (w & 0x000000FF), b);
             break;
         default:
-            fprintf(stderr, "endlines : convert_stream.push_word called on a stream with"
-                            "an unknown word layout ; aborting !\n");
+            fprintf(stderr, "endlines : convert_stream.push_code_point called on a stream with"
+                            "an unknown encoding layout ; aborting !\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -176,14 +185,14 @@ push_newline(Convention convention, Buffered_stream *b)
     case NO_CONVENTION:
         break;
     case CR:
-        err = err || push_word(13, b);
+        err = err || push_code_point(13, b);
         break;
     case LF:
-        err = err || push_word(10, b);
+        err = err || push_code_point(10, b);
         break;
     case CRLF:
-        err = err || push_word(13, b);
-        err = err || push_word(10, b);
+        err = err || push_code_point(13, b);
+        err = err || push_code_point(10, b);
         break;
     default:
         fprintf(stderr, "endlines : convert_stream.push_newline called with an unknown convention ; aborting !\n");
@@ -222,26 +231,26 @@ pull_byte(Buffered_stream *b)
 }
 
 // again, function pointer was 20% slower than a big switch
-static inline word_t
-pull_word(Buffered_stream *b)
+static inline code_point_t
+pull_code_point(Buffered_stream *b)
 {
-    word_t b1, b2, w;
-    switch(b->wordLayout) {
+    code_point_t b1, b2, w;
+    switch(b->encoding_layout) {
     case WT_1BYTE:
-        return (word_t) pull_byte(b);
+        return (code_point_t) pull_byte(b);
     case WT_2BYTE_LE:
-        b1 = (word_t) pull_byte(b);
-        b2 = (word_t) pull_byte(b);
+        b1 = (code_point_t) pull_byte(b);
+        b2 = (code_point_t) pull_byte(b);
         w = b1 + (b2<<8);
         return w;
     case WT_2BYTE_BE:
-        b1 = (word_t) pull_byte(b);
-        b2 = (word_t) pull_byte(b);
+        b1 = (code_point_t) pull_byte(b);
+        b2 = (code_point_t) pull_byte(b);
         w = (b1<<8) + b2;
         return w;
     default:
-        fprintf(stderr, "endlines : convert_stream.pull_word called on a stream with "
-                        "an unknown word layout ; aborting !\n");
+        fprintf(stderr, "endlines : convert_stream.pull_code_point called on a stream with "
+                        "an unknown encoding layout ; aborting !\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -249,7 +258,7 @@ pull_word(Buffered_stream *b)
 // LOOKING OUT FOR BINARY DATA IN A STREAM
 
 static inline bool
-is_non_text_char(word_t w)
+is_non_text_code(code_point_t w)
 {
     return (w <= 8 || (w <= 31 && w >= 14));
 }
@@ -273,57 +282,69 @@ init_report(Conversion_Report *report)
 Conversion_Report
 convert_stream(Conversion_Parameters p)
 {
-    bool err = false;
+    bool err = false; // set to true as soon as an IO error has been detected
+                      // Thus its clumsy (though innocent) presence before many function calls.
 
     Buffered_stream input_stream;
     setup_input_buffered_stream(&input_stream, p.instream);
 
     Buffered_stream output_stream;
-    setup_output_buffered_stream(&output_stream, p.outstream, input_stream.wordLayout);
+    setup_output_buffered_stream(&output_stream, p.outstream, input_stream.encoding_layout);
 
     Conversion_Report report;
     init_report(&report);
 
-    word_t word;
-    bool last_was_13 = false;
-    bool last_was_newline = false;
+    code_point_t code_point;        // the latest code-point we've read
+    bool last_was_13 = false;       // if the latest code-point we've read was 13
+    bool last_was_newline = false;  // if the latest was either 13 or 10
 
     while(true) {
-        word = pull_word(&input_stream);
+        code_point = pull_code_point(&input_stream);
+
+
+        // Is this next code-point...
+        
+        // ... a special case ?
         if(input_stream.eof) {
             break;
         }
-        if(is_non_text_char(word)) {
+        if(is_non_text_code(code_point)) {
             last_was_newline = false;
             report.contains_non_text_chars = true;
             if(p.interrupt_if_non_text) {
                 break;
             }
         }
-        if(word == 13) {
+
+        // ... a line terminator ? 
+        if(code_point == 13) {   // 13 can be a CR new-line, or the beginning of a CR-LF new-line
             err = push_newline(p.dst_convention, &output_stream);
             ++ report.count_by_convention[CR];  // may be cancelled by a LF coming up right next
             last_was_13 = true;
             last_was_newline = true;
-        } else if(word == 10) {
-            if(!last_was_13) {
-                err = push_newline(p.dst_convention, &output_stream);
-                last_was_newline = true;
-                ++ report.count_by_convention[LF];
-                if(p.interrupt_if_not_like_dst_convention && p.dst_convention != LF) {
-                    break;
-                }
-            } else {
+
+        } else if(code_point == 10) {  // 10 can be a lone LF or the end of a CR-LF
+            if(last_was_13) {  // so we just met the end of a CR-LF
                 -- report.count_by_convention[CR];
                 ++ report.count_by_convention[CRLF];
                 last_was_newline = true;
                 if(p.interrupt_if_not_like_dst_convention && p.dst_convention != CRLF) {
                     break;
                 }
+            } else {           // we met a lone LF
+                err = push_newline(p.dst_convention, &output_stream);
+                last_was_newline = true;
+                ++ report.count_by_convention[LF];
+                if(p.interrupt_if_not_like_dst_convention && p.dst_convention != LF) {
+                    break;
+                }
             }
             last_was_13 = false;
+
+
+        // ... or just a regular character ?
         } else {
-            err = push_word(word, &output_stream);
+            err = push_code_point(code_point, &output_stream);
             last_was_13 = false;
             last_was_newline = false;
         }
@@ -331,6 +352,10 @@ convert_stream(Conversion_Parameters p)
             break;
         }
     }
+
+
+    // Looping across the stream is over.
+    // Finish and return.
 
     if(p.final_char_has_to_be_eol && !last_was_newline) {
         err = err || push_newline(p.dst_convention, &output_stream);
