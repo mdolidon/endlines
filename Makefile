@@ -5,7 +5,7 @@ OBJECTS=$(BODIES:.c=.o)
 CFLAGS=-O2 -Wall -std=c99
 LDFLAGS=
 
-.PHONY: test install clean
+.PHONY: test install uninstall clean
 
 
 endlines: $(OBJECTS)
@@ -19,6 +19,9 @@ test: endlines
 
 install: endlines
 	mv endlines /usr/local/bin/endlines
+
+uninstall:
+	rm /usr/local/bin/endlines
 
 clean:
 	-rm src/*.o endlines

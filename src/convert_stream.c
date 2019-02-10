@@ -1,7 +1,7 @@
 /*
    This file is part of endlines' source code
 
-   Copyright 2014-2017 Mathias Dolidon
+   Copyright 2014-2019 Mathias Dolidon
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -357,8 +357,10 @@ convert_stream(Conversion_Parameters p)
     // Looping across the stream is over.
     // Finish and return.
 
+    report.has_final_eol = last_was_newline;
     if(p.final_char_has_to_be_eol && !last_was_newline) {
         err = err || push_newline(p.dst_convention, &output_stream);
+	report.has_final_eol = true;
     }
     err = err || flush_buffer(&output_stream);
 

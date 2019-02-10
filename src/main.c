@@ -1,7 +1,7 @@
 /*
    This file is part of endlines' source code
 
-   Copyright 2014-2017 Mathias Dolidon
+   Copyright 2014-2019 Mathias Dolidon
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -291,8 +291,12 @@ pre_conversion_check(FILE *in, char *filename,
         return SKIPPED_BINARY;
     }
     Convention src_convention = get_source_convention(&preliminary_report);
-    if((src_convention == NO_CONVENTION && !invocation->final_char_has_to_be_eol) ||
-        src_convention == invocation->dst_convention) {
+    if(
+        (src_convention == NO_CONVENTION && !invocation->final_char_has_to_be_eol) ||
+
+        (src_convention == invocation->dst_convention && 
+	   (!invocation->final_char_has_to_be_eol || preliminary_report.has_final_eol) )) {
+
         memcpy(file_report, &preliminary_report, sizeof(Conversion_Report));
         return DONE;
     }

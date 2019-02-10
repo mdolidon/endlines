@@ -96,6 +96,7 @@ then
     echo "OK : no new-line gets added without the --final flag"
 else
     echo "FAILURE : a file without a final eol was changed without the --final flag"
+    ./case_failed.sh
 fi
 
 
@@ -106,6 +107,7 @@ then
     echo "OK : a new-line was added by the --final flag to a text without final eol"
 else
     echo "FAILURE : a run with the --final flag did not yield the expected output"
+    ./case_failed.sh
 fi
 
 
@@ -116,4 +118,18 @@ then
     echo "OK : no new-line was added by the --final flag to a text that already had a final eol"
 else
     echo "FAILURE : a run with the --final flag did not yield the expected output"
+    ./case_failed.sh
+fi
+
+cp data/unix_no_final sandbox/unix_will_have_final
+NOFINAL=`$MD5<data/unix_no_final`
+FINALADDEDREF=`$MD5<data/unix_final_added`
+$ENDLINES unix -f sandbox/unix_will_have_final >/dev/null
+FINALADDOUT=`$MD5<sandbox/unix_will_have_final`
+if [[ $FINALADDEDREF == $FINALADDOUT ]]
+then
+	echo "OK : added final to file in same convention that missed final"
+else
+	echo "FAILURE : --final failed to add final to a file already in dest. convention"
+	./case_failed.sh
 fi

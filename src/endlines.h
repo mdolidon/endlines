@@ -1,7 +1,7 @@
 /*
    This file is part of endlines' source code
 
-   Copyright 2014-2017 Mathias Dolidon
+   Copyright 2014-2019 Mathias Dolidon
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 
 
 #define PROGRAM_NAME "endlines"
-#define VERSION "1.9.1"
+#define VERSION "1.9.2"
 
 
 // Prefix used for temporary files' names.
@@ -153,6 +153,8 @@ typedef struct {
     bool error_during_conversion;  // true if an error occured during the conversion
 
     bool contains_non_text_chars;  // true if the input contents contained non-text characters
+    bool has_final_eol;            // true if either the original file had a final EOL,
+                                   //   or the conversion process added one
 } Conversion_Report;
 
 
