@@ -3,7 +3,7 @@
 
 ## Debian package
 
-Users of Debian, Ubuntu and other distributions that rely on Debian packages, the `endlines-1.9.1-amd64.deb` file is for you. You can install it with a GUI installer (like gdebi) or run `sudo dpkg --install endlines-1.9.1-amd64.deb` from the command line if that's all you have.
+Users of Debian, Ubuntu and other distributions that rely on Debian packages, the `endlines-1.9.2-amd64.deb` file is for you. You can install it with a GUI installer (like gdebi) or run `sudo dpkg --install endlines-1.9.2-amd64.deb` from the command line if that's all you have.
 
 
 ## Executable files for Linux and OSX
