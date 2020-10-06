@@ -1,0 +1,64 @@
+.\" Manpage for endlines.
+.\" Contact vivek@nixcraft.net.in to correct errors or typos.
+.TH endlines 1 "27 Sepember 2020" "1.0" "endlines man page"
+.SH NAME
+endlines \- convert text files line ending conventions
+.SH SYNOPSIS
+endlines ACTION [OPTIONS] [FILES]
+.SH DESCRIPTION
+endlines smartly converts text files from and to the following line ending conventions : Unix/Apple (LF), Windows (CRLF) and legacy Apple (CR).
+.PP
+No need to know about the source files' convention. Hidden files and directories are skipped by default. Binary files will be detected and skipped by default, according to a filter based on both file extension and file content. Files' last access and last modified time stamps can be preserved. UTF-8 files, UTF-16 with BOM as well as all single byte encodings will be treated well. However, UTF-32 is not supported (files will be seen as binary and left untouched). Whether converting or checking, a report is given on the original state of line endings that were found.
+.SH OPTIONS
+.SS ACTION
+.TP
+.B lf, unix, linux, osx
+convert all endings to LF.
+.TP
+.B crlf, windows, win, dos
+convert all endings to CR-LF.
+.TP
+.B cr, oldmac
+convert all endings to CR.
+.TP
+.B check
+perform a dry run to check current conventions.
+.SS [OPTIONS]
+.TP
+.B -f, --final
+add final EOL if none.
+.TP
+.B -q, --quiet
+silence all but the error messages.
+.TP
+.B -v, --verbose
+print more about what's going on.
+.TP
+.B --version
+print version and license.
+.SS [FILES]
+.TP
+.B -b, --binaries
+don't skip binary files.
+.TP
+.B -h, --hidden
+process hidden files (/directories) too.
+.TP
+.B -k, --keepdate
+keep last modified and last access times.
+.TP
+.B -r, --recurse
+recurse into directories.
+.SH EXAMPLES
+.TP
+.B endlines check *.txt
+Check current conventions of all text files.
+.TP
+.B endlines linux -kr aFolder anotherFolder
+Convert line endings to linux, keeping date, recursive, within aFolder and anotherFolder.
+.SH AUTHOR
+Mathias Dolidon
+.SH LICENSE
+Apache License 2.0
+.SH SEE ALSO
+Full documentation <https://github.com/mdolidon/endlines>
