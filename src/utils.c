@@ -76,31 +76,7 @@ has_known_binary_file_extension(char *filename)
 void
 display_help_and_quit()
 {
-    fprintf(stderr, "\n"
-                    "  %s ACTION [OPTIONS] [FILES]\n\n"
-
-                    "  ACTION can be :\n"
-                    "    lf, unix, linux, osx    : convert all endings to LF.\n"
-                    "    crlf, windows, win, dos : convert all endings to CR-LF.\n"
-                    "    cr, oldmac              : convert all endings to CR.\n"
-                    "    check                   : perform a dry run to check current conventions.\n\n"
-
-                    "  If no files are specified, %s converts from stdin to stdout.\n"
-                    "  Supports UTF-8, UTF-16 with BOM, and all major single byte codesets.\n\n"
-
-                    "  General   -f / --final    : add final EOL if none.\n"
-                    "            -q / --quiet    : silence all but the error messages.\n"
-                    "            -v / --verbose  : print more about what's going on.\n"
-                    "            --version       : print version and license.\n\n"
-
-                    "  Files     -b / --binaries : don't skip binary files.\n"
-                    "            -h / --hidden   : process hidden files (/directories) too.\n"
-                    "            -k / --keepdate : keep last modified and last access times.\n"
-                    "            -r / --recurse  : recurse into directories.\n\n"
-
-                    "  Examples  %s check *.txt\n"
-                    "            %s linux -kr aFolder anotherFolder\n\n",
-            PROGRAM_NAME, PROGRAM_NAME, PROGRAM_NAME, PROGRAM_NAME);
+    system("man endlines");
     exit(EXIT_FAILURE);
 }
 

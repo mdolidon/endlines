@@ -1,3 +1,4 @@
+PREFIX?=/usr/local
 
 BODIES=$(wildcard src/*.c)
 OBJECTS=$(BODIES:.c=.o)
@@ -17,11 +18,19 @@ endlines: $(OBJECTS)
 test: endlines
 	@(cd test; bash runtest.sh)
 
-install: endlines
-	mv endlines /usr/local/bin/endlines
+install: endlines man/endlines.1
+	install -D -m755 endlines $(DESTDIR)$(PREFIX)/bin/endlines
+	install -D -m755 man/endlines.1 $(DESTDIR)$(PREFIX)/man/man1/endlines.1
+	gzip $(DESTDIR)$(PREFIX)/man/man1/endlines.1
+	@echo
+	@echo "Install finished."
+	@echo "The binary is located at $(DESTDIR)$(PREFIX)/bin/endlines"
+	@echo "The man pages is located at $(DESTDIR)$(PREFIX)/man/man1/endlines.1.gz"
 
 uninstall:
-	rm /usr/local/bin/endlines
+	rm $(DESTDIR)$(PREFIX)/bin/endlines $(DESTDIR)$(PREFIX)/man/man1/endlines.1.gz
+	@echo
+	@echo "Uninstall finished."
 
 clean:
 	-rm src/*.o endlines
